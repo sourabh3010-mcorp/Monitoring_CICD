@@ -1,5 +1,5 @@
 locals {
-  workbook_files = var.workbook_files1
+  workbook_files = var.workbook_files
 }
 
 resource "azurerm_resource_group_template_deployment" "workbooks" {
