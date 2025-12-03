@@ -1,6 +1,6 @@
 environment          = "qa"
 location             = "eastus"
-resource_group_name  = "rg-monitoring-qa1"
+resource_group_name  = "rg-monitoring-qa"
 
 workbook_files = [
   "workbook-aks.json",
