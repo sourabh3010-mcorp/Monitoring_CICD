@@ -1,0 +1,71 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+# Parameter to select environment
+parameters:
+  - name: environment
+    displayName: "Environment"
+    type: string
+    default: "qa"
+    values:
+      - qa
+      - prod
+
+variables:
+  # Build-specific variables
+  TF_VAR_workbook_file_path: "workbooks/*.json"
+
+steps:
+  - checkout: self
+    persistCredentials: true
+
+  # Install Terraform
+  - task: HashiCorpTerraformInstaller@1
+    inputs:
+      terraformVersion: '1.7.5'
+
+  # Terraform Init
+  - task: TerraformTaskV4@4
+    displayName: Terraform Init
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      workingDirectory: 'terraform'
+      backendServiceArm: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
+      backendAzureRmResourceGroupName: 'tfstate-rg'
+      backendAzureRmStorageAccountName: 'tfstatestoracct01'
+      backendAzureRmContainerName: 'tfstate'
+      backendAzureRmKey: '$(parameters.environment).tfstate'
+
+  # Terraform Validate
+  - task: TerraformTaskV4@4
+    displayName: Terraform Validate
+    inputs:
+      provider: 'azurerm'
+      command: 'validate'
+      workingDirectory: 'terraform'
+
+  # Terraform Plan
+  - task: TerraformTaskV4@4
+    displayName: Terraform Plan
+    inputs:
+      provider: 'azurerm'
+      command: 'plan'
+      workingDirectory: 'terraform'
+      commandOptions: "-var-file=../environments/$(parameters.environment).tfvars"
+      environmentServiceNameAzureRM: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
+
+  # Terraform Apply
+  - task: TerraformTaskV4@4
+    displayName: Terraform Apply
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      workingDirectory: 'terraform'
+      commandOptions: "-var-file=../environments/$(parameters.environment).tfvars -auto-approve"
+      environmentServiceNameAzureRM: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
