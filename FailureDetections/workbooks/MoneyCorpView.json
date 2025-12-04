@@ -35,7 +35,7 @@
       "name": "[parameters('workbookId')]",
       "type": "microsoft.insights/workbooks",
       "location": "[resourceGroup().location]",
-      "apiVersion": "2022-04-01",
+      "apiVersion": "2018-06-17-preview",
       "dependsOn": [],
       "kind": "shared",
       "properties": {
