@@ -18,7 +18,7 @@ parameters:
 
 variables:
   # Build-specific variables
-  TF_VAR_workbook_file_path: "workbooks/*.json"
+  #TF_VAR_workbook_file_path: "workbooks/*.json"
 
 steps:
   - checkout: self
@@ -36,7 +36,7 @@ steps:
       provider: 'azurerm'
       command: 'init'
       workingDirectory: 'terraform'
-      backendServiceArm: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
+      backendServiceArm: 'Visual Studio Professional Subscription-LS'
       backendAzureRmResourceGroupName: 'tfstate-rg'
       backendAzureRmStorageAccountName: 'tfstatestoracct01'
       backendAzureRmContainerName: 'tfstate'
@@ -57,15 +57,15 @@ steps:
       provider: 'azurerm'
       command: 'plan'
       workingDirectory: 'terraform'
-      commandOptions: "-var-file=../environments/$(parameters.environment).tfvars"
-      environmentServiceNameAzureRM: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
+      commandOptions: "-var-file=../environment/$(parameters.environment).tfvars"
+      environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
 
-  # Terraform Apply
-  - task: TerraformTaskV4@4
-    displayName: Terraform Apply
-    inputs:
-      provider: 'azurerm'
-      command: 'apply'
-      workingDirectory: 'terraform'
-      commandOptions: "-var-file=../environments/$(parameters.environment).tfvars -auto-approve"
-      environmentServiceNameAzureRM: 'Free Trial (0c93b7b5-6f73-4c12-8588-110da9d8052f)'
+  # # Terraform Apply
+  # - task: TerraformTaskV4@4
+  #   displayName: Terraform Apply
+  #   inputs:
+  #     provider: 'azurerm'
+  #     command: 'apply'
+  #     workingDirectory: 'terraform'
+  #     commandOptions: "-var-file=../environment/$(parameters.environment).tfvars -auto-approve"
+  #     environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
