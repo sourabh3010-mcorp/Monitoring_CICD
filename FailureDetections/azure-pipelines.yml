@@ -70,14 +70,14 @@ steps:
         -backend-config="storage_account_name=tfstatestoracct01" \
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate"
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init"
 
   # ======================================================
   # Terraform Validate
   # ======================================================
   - script: terraform validate
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Validate"
 
   # ======================================================
@@ -85,5 +85,5 @@ steps:
   # ======================================================
   - script: |
       terraform plan -var-file="../environment/$(environment).tfvars"
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
