@@ -15,11 +15,14 @@ parameters:
       - qa
       - prod
 
+variables:
+  environment: ${{ parameters.environment }}
+
 steps:
   - checkout: self
     persistCredentials: true
 
-  # Install Terraform (Correct task name)
+  # Install Terraform
   - task: TerraformInstaller@1
     inputs:
       terraformVersion: '1.7.5'
@@ -35,7 +38,7 @@ steps:
       backendAzureRmResourceGroupName: 'tfstate-rg'
       backendAzureRmStorageAccountName: 'tfstatestoracct01'
       backendAzureRmContainerName: 'tfstate'
-      backendAzureRmKey: '$(parameters.environment).tfstate'
+      backendAzureRmKey: "$(environment).tfstate"
 
   # Terraform Validate
   - task: TerraformTaskV4@4
@@ -52,7 +55,7 @@ steps:
       provider: 'azurerm'
       command: 'plan'
       workingDirectory: 'terraform'
-      commandOptions: "-var-file=../environment/$(parameters.environment).tfvars"
+      commandOptions: "-var-file=../environment/$(environment).tfvars"
       environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
 
 # # Terraform Apply
@@ -64,4 +67,3 @@ steps:
   #     workingDirectory: 'terraform'
   #     commandOptions: "-var-file=../environment/$(parameters.environment).tfvars -auto-approve"
   #     environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
-
