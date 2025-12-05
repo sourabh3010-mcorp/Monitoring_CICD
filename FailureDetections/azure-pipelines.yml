@@ -6,7 +6,6 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-# Parameter to select environment
 parameters:
   - name: environment
     displayName: "Environment"
@@ -16,16 +15,12 @@ parameters:
       - qa
       - prod
 
-# variables:
-  # Build-specific variables
-  #TF_VAR_workbook_file_path: "workbooks/*.json"
-
 steps:
   - checkout: self
     persistCredentials: true
 
-  # Install Terraform
-  - task: HashiCorpTerraformInstaller@1
+  # Install Terraform (Correct task name)
+  - task: TerraformInstaller@1
     inputs:
       terraformVersion: '1.7.5'
 
@@ -60,7 +55,7 @@ steps:
       commandOptions: "-var-file=../environment/$(parameters.environment).tfvars"
       environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
 
-  # # Terraform Apply
+# # Terraform Apply
   # - task: TerraformTaskV4@4
   #   displayName: Terraform Apply
   #   inputs:
@@ -69,3 +64,4 @@ steps:
   #     workingDirectory: 'terraform'
   #     commandOptions: "-var-file=../environment/$(parameters.environment).tfvars -auto-approve"
   #     environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
+
