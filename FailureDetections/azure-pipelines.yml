@@ -22,7 +22,7 @@ steps:
   # Install Terraform (Correct task name)
   - task: TerraformInstaller@1
     inputs:
-      terraformVersion: 'latest'
+      terraformVersion: '1.7.5'
 
   # Terraform Init
   - task: TerraformTaskV4@4
