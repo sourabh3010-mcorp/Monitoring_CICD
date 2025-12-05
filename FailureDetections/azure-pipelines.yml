@@ -22,7 +22,7 @@ steps:
         -backend-config="tenant_id=c160a942-c869-429f-8a96-f8c8296d57db" \
         -backend-config="client_id=${SERVICE_PRINCIPAL_ID}" \
         -backend-config="client_secret=${SERVICE_PRINCIPAL_KEY}"
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform/
     displayName: "Terraform Init"
 
   # Terraform Plan
