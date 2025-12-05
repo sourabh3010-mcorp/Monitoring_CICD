@@ -50,7 +50,7 @@ steps:
   # ---------------------------
   - script: |
       terraform validate
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Validate"
 
   # ---------------------------
@@ -58,7 +58,7 @@ steps:
   # ---------------------------
   - script: |
       terraform plan -var-file="../environment/$(environment).tfvars"
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
 
 
