@@ -6,6 +6,7 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+# Pipeline Input Parameter
 parameters:
   - name: environment
     displayName: "Environment"
@@ -15,53 +16,114 @@ parameters:
       - qa
       - prod
 
-steps:
-  - checkout: self
-    persistCredentials: true
+stages:
+# ----------------------------------------------
+# Stage 1: Terraform Plan (runs for every commit)
+# ----------------------------------------------
+- stage: TerraformPlan
+  displayName: "Terraform Plan"
+  jobs:
+    - job: plan
+      steps:
 
-  # Install Terraform (Correct task name)
-  - task: TerraformInstaller@1
-    inputs:
-      terraformVersion: '1.7.5'
+        - checkout: self
+          persistCredentials: true
 
-  # Terraform Init
-  - task: TerraformTaskV4@4
-    displayName: Terraform Init
-    inputs:
-      provider: 'azurerm'
-      command: 'init'
-      workingDirectory: 'terraform'
-      backendServiceArm: 'Visual Studio Professional Subscription-LS'
-      backendAzureRmResourceGroupName: 'tfstate-rg'
-      backendAzureRmStorageAccountName: 'tfstatestoracct01'
-      backendAzureRmContainerName: 'tfstate'
-      backendAzureRmKey: '$(parameters.environment).tfstate'
+        # Install Terraform
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: '1.7.5'
 
-  # Terraform Validate
-  - task: TerraformTaskV4@4
-    displayName: Terraform Validate
-    inputs:
-      provider: 'azurerm'
-      command: 'validate'
-      workingDirectory: 'terraform'
+        # Install tfsec
+        - script: |
+            sudo wget -q https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 -O /usr/local/bin/tfsec
+            sudo chmod +x /usr/local/bin/tfsec
+          displayName: "Install tfsec"
 
-  # Terraform Plan
-  - task: TerraformTaskV4@4
-    displayName: Terraform Plan
-    inputs:
-      provider: 'azurerm'
-      command: 'plan'
-      workingDirectory: 'terraform'
-      commandOptions: "-var-file=../environment/$(parameters.environment).tfvars"
-      environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
+        # Run tfsec scan
+        - script: |
+            tfsec terraform/
+          displayName: "Run tfsec security scan"
 
-# # Terraform Apply
-  # - task: TerraformTaskV4@4
-  #   displayName: Terraform Apply
-  #   inputs:
-  #     provider: 'azurerm'
-  #     command: 'apply'
-  #     workingDirectory: 'terraform'
-  #     commandOptions: "-var-file=../environment/$(parameters.environment).tfvars -auto-approve"
-  #     environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
+        # Terraform Init
+        - task: TerraformTaskV4@4
+          displayName: "Terraform Init"
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: 'terraform'
+            backendServiceArm: 'Visual Studio Professional Subscription-LS'
+            backendAzureRmResourceGroupName: 'tfstate-rg'
+            backendAzureRmStorageAccountName: 'tfstatestoracct01'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: '${{ parameters.environment }}.tfstate'
 
+        # Terraform Validate
+        - task: TerraformTaskV4@4
+          displayName: "Terraform Validate"
+          inputs:
+            provider: 'azurerm'
+            command: 'validate'
+            workingDirectory: 'terraform'
+
+        # Terraform Plan (output to file)
+        - task: TerraformTaskV4@4
+          displayName: "Terraform Plan"
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            workingDirectory: 'terraform'
+            commandOptions: "-var-file=../environment/${{ parameters.environment }}.tfvars -out=tfplan"
+            environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
+
+        # Publish plan as pipeline artifact
+        - publish: terraform/tfplan
+          artifact: tfplan
+          displayName: "Publish Terraform Plan Artifact"
+
+# ------------------------------------------------------
+# Stage 2: Terraform Apply (only runs on main branch)
+# ------------------------------------------------------
+- stage: TerraformApply
+  displayName: "Terraform Apply"
+  dependsOn: TerraformPlan
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+    - job: apply
+      steps:
+
+        - checkout: self
+          persistCredentials: true
+
+        # Install Terraform
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: '1.7.5'
+
+        # Download plan artifact
+        - download: current
+          artifact: tfplan
+          displayName: "Download Terraform Plan File"
+
+        # Terraform Init
+        - task: TerraformTaskV4@4
+          displayName: "Terraform Init"
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: 'terraform'
+            backendServiceArm: 'Visual Studio Professional Subscription-LS'
+            backendAzureRmResourceGroupName: 'tfstate-rg'
+            backendAzureRmStorageAccountName: 'tfstatestoracct01'
+            backendAzureRmContainerName: 'tfstate'
+            backendAzureRmKey: '${{ parameters.environment }}.tfstate'
+
+        # Terraform Apply
+        - task: TerraformTaskV4@4
+          displayName: "Terraform Apply"
+          inputs:
+            provider: 'azurerm'
+            command: 'apply'
+            workingDirectory: 'terraform'
+            commandOptions: "../tfplan"
+            environmentServiceNameAzureRM: 'Visual Studio Professional Subscription-LS'
