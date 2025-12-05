@@ -42,7 +42,7 @@ steps:
         -backend-config="storage_account_name=tfstatestoracct01" \
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate"
-    workingDirectory: terraform
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init (Backend from provider.tf)"
 
   # ---------------------------
