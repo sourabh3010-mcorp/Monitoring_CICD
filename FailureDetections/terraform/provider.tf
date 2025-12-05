@@ -1,11 +1,10 @@
 terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 4.0"
-    }
+  required_version = ">= 1.7.5"
+
+  backend "azurerm" {
+    # DO NOT put values here
+    # They will be injected by Azure DevOps pipeline
   }
-  required_version = ">= 1.6.0"
 }
 
 provider "azurerm" {

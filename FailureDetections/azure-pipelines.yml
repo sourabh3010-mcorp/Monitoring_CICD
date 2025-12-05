@@ -1,31 +1,61 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+  - name: environment
+    displayName: "Environment"
+    type: string
+    default: "qa"
+    values:
+      - qa
+      - prod
+
+variables:
+  environment: ${{ parameters.environment }}
+
 steps:
   - checkout: self
 
+  # ---------------------------
   # Install Terraform manually
+  # ---------------------------
   - script: |
       sudo apt-get update -y
-      sudo apt-get install -y unzip wget
+      sudo apt-get install -y wget unzip
       wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
       unzip terraform_1.7.5_linux_amd64.zip
       sudo mv terraform /usr/local/bin/
       terraform -v
-    displayName: "Install Terraform manually"
+    displayName: "Install Terraform 1.7.5"
 
+  # ---------------------------
   # Terraform Init
+  # ---------------------------
   - script: |
       terraform init \
+        -backend-config="resource_group_name=tfstate-rg" \
         -backend-config="storage_account_name=tfstatestoracct01" \
         -backend-config="container_name=tfstate" \
-        -backend-config="key=$(environment).tfstate" \
-        -backend-config="resource_group_name=tfstate-rg" \
-        -backend-config="subscription_id=2e2c8853-dd2c-4e45-89b9-073ee228cfbf" \
-        -backend-config="tenant_id=c160a942-c869-429f-8a96-f8c8296d57db" \
-        -backend-config="client_id=${SERVICE_PRINCIPAL_ID}" \
-        -backend-config="client_secret=${SERVICE_PRINCIPAL_KEY}"
-    workingDirectory: FailureDetections/terraform/
-    displayName: "Terraform Init"
+        -backend-config="key=$(environment).tfstate"
+    workingDirectory: terraform
+    displayName: "Terraform Init (Backend from provider.tf)"
 
+  # ---------------------------
+  # Terraform Validate
+  # ---------------------------
+  - script: |
+      terraform validate
+    workingDirectory: terraform
+    displayName: "Terraform Validate"
+
+  # ---------------------------
   # Terraform Plan
+  # ---------------------------
   - script: |
       terraform plan -var-file="../environment/$(environment).tfvars"
     workingDirectory: terraform
