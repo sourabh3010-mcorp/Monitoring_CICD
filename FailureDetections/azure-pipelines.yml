@@ -16,7 +16,7 @@ parameters:
       - qa
       - prod
 
-variables:
+# variables:
   # Build-specific variables
   #TF_VAR_workbook_file_path: "workbooks/*.json"
 
