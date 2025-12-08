@@ -64,8 +64,8 @@ steps:
   # Terraform Init
   - script: |
       terraform init \
-        -backend-config="resource_group_name=tfstate-rg" \
-        -backend-config="storage_account_name=tfstatestoracct01" \
+        -backend-config="resource_group_name=tfstate-rg-monitoring" \
+        -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate"
     workingDirectory: FailureDetections/terraform
