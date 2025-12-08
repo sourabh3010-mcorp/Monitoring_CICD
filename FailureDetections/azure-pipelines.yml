@@ -81,6 +81,7 @@ steps:
   # Terraform Plan
   # ======================================================
   - script: terraform plan -var-file="FailureDetections/terraform/environment/$(environment).tfvars"
+    workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
     env:
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
