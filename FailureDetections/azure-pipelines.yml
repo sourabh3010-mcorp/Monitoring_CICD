@@ -80,7 +80,8 @@ steps:
   # ======================================================
   # Terraform Plan
   # ======================================================
-  - script: terraform plan -var-file="/environment/$(environment).tfvars"
+ 
+  - script: terraform plan -var-file="../../environment/$(environment).tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
     env:
@@ -88,6 +89,7 @@ steps:
       ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
       ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+
 
   # ======================================================
   # Terraform Apply (optional, add -auto-approve if desired)
