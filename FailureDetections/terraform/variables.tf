@@ -1,3 +1,8 @@
+variable "environment" {
+  description = "Deployment environment (e.g. qa or prod). Provided by the pipeline."
+  type        = string
+}
+
 variable "resource_group_name" {
   type = string
 }
