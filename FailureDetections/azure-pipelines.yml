@@ -17,6 +17,8 @@ parameters:
 
 variables:
   environment: ${{ parameters.environment }}
+  # Expect these secure variables to be created in the pipeline or a variable group:
+  # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID, TF_SUBSCRIPTION_ID
 
 steps:
   - checkout: self
@@ -31,33 +33,31 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Login to Azure using Service Connection and run Terraform init using Azure CLI auth
+  # Optional: check Azure context (not used for Terraform auth when using explicit SP credentials)
   - task: AzureCLI@2
-    displayName: "Azure Login and Terraform Init (use AZ CLI auth for Terraform)"
+    displayName: "Azure CLI context check (optional)"
     inputs:
       azureSubscription: "VS Professional Subscription-Nitin Pradhan"
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
-        echo "Azure Login Successful"
+        echo "Azure CLI context (for debug only)"
         az account show
 
-        echo "Running terraform init using Azure CLI authentication (no ARM_CLIENT_* required)..."
-
-        # Make Terraform use the Azure CLI credential that this task logged in with
-        export ARM_USE_AZURECLI_AUTH=true
-
-        cd FailureDetections/terraform
-
-        terraform init \
-          -backend-config="resource_group_name=tfstate-rg-monitoring" \
-          -backend-config="storage_account_name=tfstatestoracct02" \
-          -backend-config="container_name=tfstate" \
-          -backend-config="key=$(environment).tfstate"
-
+  # Terraform Init — uses explicit Service Principal credentials provided via secure pipeline variables (TF_*)
+  - script: |
+      echo "Initializing Terraform backend for environment: $(environment)"
+      cd FailureDetections/terraform
+      terraform init \
+        -backend-config="resource_group_name=tfstate-rg-monitoring" \
+        -backend-config="storage_account_name=tfstatestoracct02" \
+        -backend-config="container_name=tfstate" \
+        -backend-config="key=$(environment).tfstate"
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Init (using pre-provisioned SP credentials)"
     env:
-      # It's OK to leave these empty; we rely on the Azure CLI auth instead.
-      # If you later switch to client-id/secret method, provide ARM_CLIENT_ID/ARM_CLIENT_SECRET here.
-      ARM_USE_AZURECLI_AUTH: "true"
-
-  # (Subsequent Terraform steps can be added here; run them inside AzureCLI tasks or create a service principal stored as secure variables)
+      # Map secure TF_* variables into ARM_* environment variables for Terraform
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
