@@ -80,7 +80,7 @@ steps:
   # ======================================================
   # Terraform Plan
   # ======================================================
-  - script: terraform plan -var-file="FailureDetections/terraform/environment/$(environment).tfvars"
+  - script: terraform plan -var-file="/environment/$(environment).tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
     env:
