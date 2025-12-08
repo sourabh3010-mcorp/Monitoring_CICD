@@ -55,7 +55,7 @@ steps:
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
-        -backend-config="key=$(environment).tfstate"
+        -backend-config="key=$(environment).tfstate" \
         -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init"
