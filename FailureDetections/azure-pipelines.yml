@@ -33,31 +33,29 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Optional: debug to ensure TF_* variables exist (do NOT print secrets)
-  # Enable this step if you need to confirm TF_TENANT_ID / TF_SUBSCRIPTION_ID are set
-  - script: |
-      echo "Debug: TF_TENANT_ID = '$(TF_TENANT_ID)'"
-      echo "Debug: TF_SUBSCRIPTION_ID = '$(TF_SUBSCRIPTION_ID)'"
-      echo "Listing repo root (for path debug):"
-      ls -la
-    displayName: "Debug: check TF variables and repo (optional)"
-    # keep this enabled only for troubleshooting; it exposes non-secret values in logs
+  # Optional: check Azure context (not used for Terraform auth when using explicit SP credentials)
+  - task: AzureCLI@2
+    displayName: "Azure CLI context check (optional)"
+    inputs:
+      azureSubscription: "VS Professional Subscription-Nitin Pradhan"
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        echo "Azure CLI context (for debug only)"
+        az account show
 
-  # Terraform Init — pass backend config explicitly and use SP credentials via ARM_* env vars
+  # Terraform Init — uses explicit Service Principal credentials provided via secure pipeline variables (TF_*)
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
       terraform init \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
-        -backend-config="key=$(environment).tfstate" \
-        -backend-config="subscription_id=$(TF_SUBSCRIPTION_ID)" \
-        -backend-config="tenant_id=$(TF_TENANT_ID)"
+        -backend-config="key=$(environment).tfstate"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init (using pre-provisioned SP credentials)"
     env:
-      # Map secure TF_* pipeline variables into ARM_* env vars for Terraform
+      # Map secure TF_* variables into ARM_* environment variables for Terraform
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
       ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-      ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
