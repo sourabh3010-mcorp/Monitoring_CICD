@@ -17,13 +17,15 @@ parameters:
 
 variables:
   environment: ${{ parameters.environment }}
-  # Expect these secure variables to be created in the pipeline or a variable group:
-  # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID, TF_SUBSCRIPTION_ID
+  # Ensure the following secure variables exist in the pipeline or variable group:
+  # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID (secret), TF_SUBSCRIPTION_ID (secret)
 
 steps:
   - checkout: self
 
-  # Install Terraform
+  # ======================================================
+  # Install Terraform 1.7.5
+  # ======================================================
   - script: |
       sudo apt-get update -y
       sudo apt-get install -y wget unzip
@@ -33,18 +35,20 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Optional: check Azure context (not used for Terraform auth when using explicit SP credentials)
-  - task: AzureCLI@2
-    displayName: "Azure CLI context check (optional)"
-    inputs:
-      azureSubscription: "VS Professional Subscription-Nitin Pradhan"
-      scriptType: bash
-      scriptLocation: inlineScript
-      inlineScript: |
-        echo "Azure CLI context (for debug only)"
-        az account show
+  # ======================================================
+  # Export SP credentials as ARM_* environment variables for Terraform
+  # ======================================================
+  - script: |
+      echo "Exporting Service Principal credentials as ARM_* env variables"
+      echo "ARM_CLIENT_ID: $(TF_CLIENT_ID)"
+      echo "ARM_CLIENT_SECRET: [hidden]"
+      echo "ARM_TENANT_ID: $(TF_TENANT_ID)"
+      echo "ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)"
+    displayName: "Set ARM_* environment variables for Terraform"
 
-  # Terraform Init — uses explicit Service Principal credentials provided via secure pipeline variables (TF_*)
+  # ======================================================
+  # Terraform Init
+  # ======================================================
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
       terraform init \
@@ -53,10 +57,45 @@ steps:
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate"
     workingDirectory: FailureDetections/terraform
-    displayName: "Terraform Init (using pre-provisioned SP credentials)"
+    displayName: "Terraform Init"
     env:
-      # Map secure TF_* variables into ARM_* environment variables for Terraform
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
       ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-      ARM_TENANT_ID: "c160a942-c869-429f-8a96-f8c8296d57db"
+      ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+
+  # ======================================================
+  # Terraform Validate
+  # ======================================================
+  - script: terraform validate
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Validate"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+
+  # ======================================================
+  # Terraform Plan
+  # ======================================================
+  - script: terraform plan -var-file="../environment/$(environment).tfvars"
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Plan"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+
+  # ======================================================
+  # Terraform Apply (optional, add -auto-approve if desired)
+  # ======================================================
+  #- script: terraform apply -var-file="../environment/$(environment).tfvars" -auto-approve
+  #  workingDirectory: FailureDetections/terraform
+  #  displayName: "Terraform Apply"
+  #  env:
+  #    ARM_CLIENT_ID: $(TF_CLIENT_ID)
+  #    ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+  #    ARM_TENANT_ID: $(TF_TENANT_ID)
+  #    ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
