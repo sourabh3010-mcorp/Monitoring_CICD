@@ -21,9 +21,7 @@ variables:
 steps:
   - checkout: self
 
-  # ======================================================
-  # Install Terraform (Manual = no ENOENT issues)
-  # ======================================================
+  # Install Terraform
   - script: |
       sudo apt-get update -y
       sudo apt-get install -y wget unzip
@@ -33,37 +31,37 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # ======================================================
-  # Azure Login + Extract & Persist ARM Env Vars
-  # ======================================================
+  # Login to Azure using Service Connection
   - task: AzureCLI@2
-    displayName: "Azure Login + Export ARM Credentials"
+    displayName: "Azure Login"
     inputs:
       azureSubscription: "VS Professional Subscription-Nitin Pradhan"
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
-        echo "Logging into Azure using Service Connection..."
-
-        ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-        ARM_TENANT_ID=$(az account show --query tenantId -o tsv)
-
-        # These variables come automatically from the Azure service connection
-        ARM_CLIENT_ID=$servicePrincipalId
-        ARM_CLIENT_SECRET=$servicePrincipalKey
-
-        echo "Azure Login Successful."
-        echo "Subscription: $ARM_SUBSCRIPTION_ID"
-
-        # Persist variables for NEXT pipeline steps
-        echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=true]$ARM_CLIENT_ID"
-        echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$ARM_CLIENT_SECRET"
-        echo "##vso[task.setvariable variable=ARM_TENANT_ID]$ARM_TENANT_ID"
-        echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$ARM_SUBSCRIPTION_ID"
+        echo "Azure Login Successful"
+        az account show
 
   # ======================================================
-  # Terraform Init (Backend defined in provider.tf)
+  # Export ARM Credentials FOR TERRAFORM ONLY
   # ======================================================
+  - script: |
+      echo "Exporting ARM_* credentials for Terraform..."
+
+      SP_ID=$servicePrincipalId
+      SP_SECRET=$servicePrincipalKey
+      TENANT_ID=$(az account show --query tenantId -o tsv)
+      SUB_ID=$(az account show --query id -o tsv)
+
+      echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=true]$SP_ID"
+      echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$SP_SECRET"
+      echo "##vso[task.setvariable variable=ARM_TENANT_ID]$TENANT_ID"
+      echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$SUB_ID"
+
+      echo "Terraform authentication variables exported."
+    displayName: "Export Terraform ARM Auth Vars"
+
+  # Terraform Init
   - script: |
       terraform init \
         -backend-config="resource_group_name=tfstate-rg" \
@@ -78,23 +76,4 @@ steps:
       ARM_TENANT_ID: $(ARM_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
-  # ======================================================
-  # Terraform Validate
-  # ======================================================
-  - script: |
-      terraform validate
-    workingDirectory: FailureDetections/terraform
-    displayName: "Terraform Validate"
-
-  # ======================================================
-  # Terraform Plan
-  # ======================================================
-  - script: |
-      terraform plan -var-file="../environment/$(environment).tfvars"
-    workingDirectory: FailureDetections/terraform
-    displayName: "Terraform Plan"
-    env:
-      ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-      ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-      ARM_TENANT_ID: $(ARM_TENANT_ID)
-      ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+  # Terraform Validat
