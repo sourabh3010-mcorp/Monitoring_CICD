@@ -96,7 +96,6 @@ steps:
       command: 'plan'
       workingDirectory: 'FailureDetections/terraform/'
       environmentServiceName: 'VS Professional Subscription-Nitin Pradhan'  # Replace with your service connection name
-      workingDirectory: 'FailureDetections/terraform/'
       commandOptions: '-var-file="environment/$(environment).tfvars'
 
 
