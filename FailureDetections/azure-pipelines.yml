@@ -90,8 +90,8 @@ steps:
   #     ARM_TENANT_ID: $(TF_TENANT_ID)
   #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-  - script: terraform plan -var-file="$(Build.SourcesDirectory)/environment/$(environment).tfvars"
-    workingDirectory: FailureDetections/terraform
+  - script: terraform plan -var-file="environment/$(environment).tfvars"
+    workingDirectory: FailureDetections/terraform/
     displayName: "Terraform Plan"
     env:
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
