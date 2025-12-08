@@ -39,7 +39,7 @@ steps:
   - task: AzureCLI@2
     displayName: "Azure Login + Export ARM Credentials"
     inputs:
-      azureSubscription: "Visual Studio Professional Subscription-LS"
+      azureSubscription: "VS Professional Subscription-Nitin Pradhan"
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
