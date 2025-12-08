@@ -52,7 +52,7 @@ steps:
   # ======================================================
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
-      terraform init \
+      terraform init -upgrade \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
