@@ -34,13 +34,14 @@ steps:
     displayName: "Install Terraform 1.7.5"
 
   # Pre-check: ensure required TF_* pipeline variables exist (will fail early with clear message)
+  # Use environment variables ($TF_...) inside the script so bash doesn't try to execute tokens.
   - script: |
       missing=0
-      echo "Checking required TF_* variables..."
-      if [ -z "$(TF_CLIENT_ID)" ]; then echo "ERROR: TF_CLIENT_ID is missing"; missing=1; fi
-      if [ -z "$(TF_CLIENT_SECRET)" ]; then echo "ERROR: TF_CLIENT_SECRET is missing"; missing=1; fi
-      if [ -z "$(TF_TENANT_ID)" ]; then echo "ERROR: TF_TENANT_ID is missing"; missing=1; fi
-      if [ -z "$(TF_SUBSCRIPTION_ID)" ]; then echo "ERROR: TF_SUBSCRIPTION_ID is missing"; missing=1; fi
+      echo "Checking required TF_* environment variables..."
+      if [ -z "$TF_CLIENT_ID" ]; then echo "ERROR: TF_CLIENT_ID is missing"; missing=1; fi
+      if [ -z "$TF_CLIENT_SECRET" ]; then echo "ERROR: TF_CLIENT_SECRET is missing"; missing=1; fi
+      if [ -z "$TF_TENANT_ID" ]; then echo "ERROR: TF_TENANT_ID is missing"; missing=1; fi
+      if [ -z "$TF_SUBSCRIPTION_ID" ]; then echo "ERROR: TF_SUBSCRIPTION_ID is missing"; missing=1; fi
       if [ "$missing" -eq 1 ]; then
         echo "One or more required TF_* variables are missing. Define them in the pipeline or a variable group and retry."
         exit 1
@@ -51,16 +52,18 @@ steps:
   # Terraform Init — pass backend config explicitly and use SP credentials via ARM_* env vars
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
+      # run init from the correct working directory; use shell env vars ($TF_...) for backend-config
       terraform init \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate" \
-        -backend-config="subscription_id=$(TF_SUBSCRIPTION_ID)" \
-        -backend-config="tenant_id=$(TF_TENANT_ID)"
+        -backend-config="subscription_id=$TF_SUBSCRIPTION_ID" \
+        -backend-config="tenant_id=$TF_TENANT_ID"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init (using pre-provisioned SP credentials)"
     env:
+      # Map secure TF_* pipeline variables into ARM_* env vars for Terraform provider
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
       ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
       ARM_TENANT_ID: $(TF_TENANT_ID)
