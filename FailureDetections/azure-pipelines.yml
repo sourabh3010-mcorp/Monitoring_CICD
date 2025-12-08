@@ -31,9 +31,9 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Login to Azure using Service Connection
+  # Login to Azure using Service Connection (and export ARM_* for Terraform in the same AzureCLI task)
   - task: AzureCLI@2
-    displayName: "Azure Login"
+    displayName: "Azure Login and export ARM_* for Terraform"
     inputs:
       azureSubscription: "VS Professional Subscription-Nitin Pradhan"
       scriptType: bash
@@ -42,26 +42,29 @@ steps:
         echo "Azure Login Successful"
         az account show
 
+        echo "Exporting ARM_* credentials for Terraform..."
+
+        # NOTE:
+        # $(servicePrincipalId) and $(servicePrincipalKey) will be expanded by Azure DevOps
+        # at runtime into literal values if they exist in the service connection or pipeline variables.
+        # We assign them to local shell variables here.
+        SP_ID="$(servicePrincipalId)"
+        SP_SECRET="$(servicePrincipalKey)"
+
+        # Get tenant and subscription from the currently logged-in service connection
+        TENANT_ID=$(az account show --query tenantId -o tsv)
+        SUB_ID=$(az account show --query id -o tsv)
+
+        # Set pipeline variables (ARM_CLIENT_ID and ARM_CLIENT_SECRET are marked secret)
+        echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=true]$SP_ID"
+        echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$SP_SECRET"
+        echo "##vso[task.setvariable variable=ARM_TENANT_ID]$TENANT_ID"
+        echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$SUB_ID"
+
+        echo "Terraform authentication variables exported."
   # ======================================================
-  # Export ARM Credentials FOR TERRAFORM ONLY
-  # ======================================================
-  - script: |
-      echo "Exporting ARM_* credentials for Terraform..."
-
-      SP_ID=$servicePrincipalId
-      SP_SECRET=$servicePrincipalKey
-      TENANT_ID=$(az account show --query tenantId -o tsv)
-      SUB_ID=$(az account show --query id -o tsv)
-
-      echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=true]$SP_ID"
-      echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$SP_SECRET"
-      echo "##vso[task.setvariable variable=ARM_TENANT_ID]$TENANT_ID"
-      echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$SUB_ID"
-
-      echo "Terraform authentication variables exported."
-    displayName: "Export Terraform ARM Auth Vars"
-
   # Terraform Init
+  # ======================================================
   - script: |
       terraform init \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
