@@ -81,22 +81,15 @@ steps:
   # ======================================================
   # Terraform Plan
   # ======================================================
-  # - script: terraform plan -var-file="environment/$(environment).tfvars"
-  #   workingDirectory: FailureDetections/terraform/
-  #   displayName: "Terraform Plan"
-  #   env:
-  #     ARM_CLIENT_ID: $(TF_CLIENT_ID)
-  #     ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-  #     ARM_TENANT_ID: $(TF_TENANT_ID)
-  #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-  - task: TerraformCLI@0
-    displayName: 'Terraform Plan'
-    inputs:
-      command: 'plan'
-      workingDirectory: 'FailureDetections/terraform/'
-      environmentServiceName: 'VS Professional Subscription-Nitin Pradhan'  # Replace with your service connection name
-      commandOptions: '-var-file="environment/$(environment).tfvars'
+  - script: terraform plan -var-file="environment/$(environment).tfvars"
+    workingDirectory: FailureDetections/terraform/
+    displayName: "Terraform Plan"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
 
 
