@@ -17,7 +17,7 @@ parameters:
 
 variables:
   environment: ${{ parameters.environment }}
-  # Expect these secure variables to be created in the pipeline or a variable group:
+  # Ensure these secure variables are created in the pipeline or a variable group:
   # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID, TF_SUBSCRIPTION_ID
 
 steps:
@@ -33,29 +33,35 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Optional: check Azure context (not used for Terraform auth when using explicit SP credentials)
-  - task: AzureCLI@2
-    displayName: "Azure CLI context check (optional)"
-    inputs:
-      azureSubscription: "VS Professional Subscription-Nitin Pradhan"
-      scriptType: bash
-      scriptLocation: inlineScript
-      inlineScript: |
-        echo "Azure CLI context (for debug only)"
-        az account show
+  # Pre-check: ensure required TF_* pipeline variables exist (will fail early with clear message)
+  - script: |
+      missing=0
+      echo "Checking required TF_* variables..."
+      if [ -z "$(TF_CLIENT_ID)" ]; then echo "ERROR: TF_CLIENT_ID is missing"; missing=1; fi
+      if [ -z "$(TF_CLIENT_SECRET)" ]; then echo "ERROR: TF_CLIENT_SECRET is missing"; missing=1; fi
+      if [ -z "$(TF_TENANT_ID)" ]; then echo "ERROR: TF_TENANT_ID is missing"; missing=1; fi
+      if [ -z "$(TF_SUBSCRIPTION_ID)" ]; then echo "ERROR: TF_SUBSCRIPTION_ID is missing"; missing=1; fi
+      if [ "$missing" -eq 1 ]; then
+        echo "One or more required TF_* variables are missing. Define them in the pipeline or a variable group and retry."
+        exit 1
+      fi
+      echo "All required TF_* variables present."
+    displayName: "Validate TF_* pipeline variables are set"
 
-  # Terraform Init — uses explicit Service Principal credentials provided via secure pipeline variables (TF_*)
+  # Terraform Init — pass backend config explicitly and use SP credentials via ARM_* env vars
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
       terraform init \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
         -backend-config="container_name=tfstate" \
-        -backend-config="key=$(environment).tfstate"
+        -backend-config="key=$(environment).tfstate" \
+        -backend-config="subscription_id=$(TF_SUBSCRIPTION_ID)" \
+        -backend-config="tenant_id=$(TF_TENANT_ID)"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init (using pre-provisioned SP credentials)"
     env:
-      # Map secure TF_* variables into ARM_* environment variables for Terraform
       ARM_CLIENT_ID: $(TF_CLIENT_ID)
       ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
