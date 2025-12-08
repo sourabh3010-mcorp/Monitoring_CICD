@@ -31,9 +31,9 @@ steps:
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
-  # Login to Azure using Service Connection (and export ARM_* for Terraform in the same AzureCLI task)
+  # Login to Azure using Service Connection and run Terraform init using Azure CLI auth
   - task: AzureCLI@2
-    displayName: "Azure Login and export ARM_* for Terraform"
+    displayName: "Azure Login and Terraform Init (use AZ CLI auth for Terraform)"
     inputs:
       azureSubscription: "VS Professional Subscription-Nitin Pradhan"
       scriptType: bash
@@ -42,41 +42,22 @@ steps:
         echo "Azure Login Successful"
         az account show
 
-        echo "Exporting ARM_* credentials for Terraform..."
+        echo "Running terraform init using Azure CLI authentication (no ARM_CLIENT_* required)..."
 
-        # NOTE:
-        # $(servicePrincipalId) and $(servicePrincipalKey) will be expanded by Azure DevOps
-        # at runtime into literal values if they exist in the service connection or pipeline variables.
-        # We assign them to local shell variables here.
-        SP_ID="$(servicePrincipalId)"
-        SP_SECRET="$(servicePrincipalKey)"
+        # Make Terraform use the Azure CLI credential that this task logged in with
+        export ARM_USE_AZURECLI_AUTH=true
 
-        # Get tenant and subscription from the currently logged-in service connection
-        TENANT_ID=$(az account show --query tenantId -o tsv)
-        SUB_ID=$(az account show --query id -o tsv)
+        cd FailureDetections/terraform
 
-        # Set pipeline variables (ARM_CLIENT_ID and ARM_CLIENT_SECRET are marked secret)
-        echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=true]$SP_ID"
-        echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$SP_SECRET"
-        echo "##vso[task.setvariable variable=ARM_TENANT_ID]$TENANT_ID"
-        echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID]$SUB_ID"
+        terraform init \
+          -backend-config="resource_group_name=tfstate-rg-monitoring" \
+          -backend-config="storage_account_name=tfstatestoracct02" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=$(environment).tfstate"
 
-        echo "Terraform authentication variables exported."
-  # ======================================================
-  # Terraform Init
-  # ======================================================
-  - script: |
-      terraform init \
-        -backend-config="resource_group_name=tfstate-rg-monitoring" \
-        -backend-config="storage_account_name=tfstatestoracct02" \
-        -backend-config="container_name=tfstate" \
-        -backend-config="key=$(environment).tfstate"
-    workingDirectory: FailureDetections/terraform
-    displayName: "Terraform Init"
     env:
-      ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-      ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-      ARM_TENANT_ID: $(ARM_TENANT_ID)
-      ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+      # It's OK to leave these empty; we rely on the Azure CLI auth instead.
+      # If you later switch to client-id/secret method, provide ARM_CLIENT_ID/ARM_CLIENT_SECRET here.
+      ARM_USE_AZURECLI_AUTH: "true"
 
-  # Terraform Validat
+  # (Subsequent Terraform steps can be added here; run them inside AzureCLI tasks or create a service principal stored as secure variables)
