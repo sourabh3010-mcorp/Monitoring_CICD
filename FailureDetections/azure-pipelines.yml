@@ -47,7 +47,6 @@ steps:
   # Terraform Init — uses explicit Service Principal credentials provided via secure pipeline variables (TF_*)
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
-      cd FailureDetections/terraform
       terraform init \
         -backend-config="resource_group_name=tfstate-rg-monitoring" \
         -backend-config="storage_account_name=tfstatestoracct02" \
