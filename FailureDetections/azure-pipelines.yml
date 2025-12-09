@@ -58,7 +58,7 @@ steps:
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate" \
         -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
-      terraform plan -var-file="environment/$(environment).tfvars
+      terraform plan -var-file="environment/$(environment).tfvars"
     
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init"
