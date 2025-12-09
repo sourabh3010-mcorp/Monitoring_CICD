@@ -13,5 +13,11 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
   deployment_mode     = "Incremental"
 
   template_content = file("${path.module}/../workbooks/${each.value}")
-  parameters_content = jsonencode({})
+
+  parameters_content = jsonencode({
+    workbookId          = { value = var.workbook_id[each.key] }
+    workbookDisplayName = { value = "Health score" }
+    workbookType        = { value = "workbook" }
+    workbookSourceId    = { value = "azure monitor" }
+  })
 }

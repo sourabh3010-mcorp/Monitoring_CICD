@@ -21,3 +21,8 @@ variable "dashboard_files" {
   type        = list(string)
   description = "List of dashboard JSON files to deploy"
 }
+
+variable "workbook_id" {
+  type = map(string)
+  description = "A map of workbook filename => workbook ID"
+}
