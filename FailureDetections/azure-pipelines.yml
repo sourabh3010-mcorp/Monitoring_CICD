@@ -184,23 +184,15 @@ steps:
   # (Optional) You can add Apply step here — recommended to use AzureCLI@2 as well and apply the saved tfplan.
   # ======================================================
 
-    displayName: "Terraform Apply (requires environment approval)"
-    # This environment name must exist in Azure DevOps and have Approvals & checks configured.
-    environment: 'FailureDetections-${{ parameters.environment }}'
-    pool:
-      vmImage: ubuntu-latest
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - task: AzureCLI@2
-              displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
-              inputs:
-                azureSubscription: 'VS Professional Subscription-Nitin Pradhan'   # <-- REPLACE with your Azure service connection name
-                scriptType: bash
-                scriptLocation: inlineScript
-                inlineScript: |
-                  set -euo pipefail
+  
+  - task: AzureCLI@2
+    displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
+    inputs:
+      azureSubscription: 'VS Professional Subscription-Nitin Pradhan'   # <-- REPLACE with your Azure service connection name
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+          set -euo pipefail
 
                   TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
                   echo "Terraform working dir: $TF_WORKDIR"
@@ -243,7 +235,7 @@ steps:
                   echo "If you intentionally want to apply directly, change this step to run:"
                   echo "  terraform apply -var-file=\"${ENV}.tfvars\" -input=false -auto-approve"
                   exit 1
-              env:
-                environment: $(environment)
+    env:
+      environment: $(environment)
 
 
