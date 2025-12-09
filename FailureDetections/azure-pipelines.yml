@@ -183,3 +183,69 @@ steps:
   # ======================================================
   # (Optional) You can add Apply step here — recommended to use AzureCLI@2 as well and apply the saved tfplan.
   # ======================================================
+
+  - task: ManualValidation@0
+    displayName: "Manual approval: Review plan before Terraform Apply"
+    inputs:
+      # Optional: comma-separated list of users to notify (use Azure DevOps IDs or email addresses).
+      # notifyUsers: 'approver@contoso.com'
+      instructions: |
+        A terraform plan has been generated and saved as 'tfplan' in FailureDetections/terraform.
+        Please review the plan output in the pipeline run (logs and artifacts) and APPROVE to proceed with terraform apply.
+        If you REJECT, the apply step will be skipped.
+      onTimeout: 'reject'      # 'reject' or 'continue' - here we reject on timeout
+      timeout: '1440'          # timeout in minutes (1440 = 24 hours)
+
+  # Run the apply only after manual approval
+  - task: AzureCLI@2
+    displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
+    inputs:
+      azureSubscription: 'VS Professional Subscription-Nitin Pradhan'   # <-- REPLACE with your Azure service connection name
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+
+        TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
+        echo "Terraform working dir: $TF_WORKDIR"
+        cd "$TF_WORKDIR" || { echo "ERROR: Terraform working directory not found: $TF_WORKDIR"; exit 1; }
+
+        # Resolve environment (runtime variable)
+        echo "Runtime environment (expanded): '${environment:-<not-set>}'"
+        ENV="${environment:-}"
+        if [ -z "$ENV" ]; then
+          echo "ERROR: pipeline variable 'environment' is empty. Provide the environment parameter (e.g. qa or prod)."
+          exit 1
+        fi
+        echo "Using environment: $ENV"
+
+        # Ensure the service connection is active and capture subscription/tenant
+        SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+        TENANT_ID=$(az account show --query tenantId -o tsv)
+        printf "az account show -> subscription: <<%s>> tenant: <<%s>>\n" "$SUBSCRIPTION_ID" "$TENANT_ID"
+
+        # Tell azurerm provider to use Azure CLI auth
+        export ARM_USE_AZURECLI_AUTH=true
+        export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
+        export ARM_TENANT_ID="$TENANT_ID"
+
+        # Prefer applying a saved plan to ensure you apply exactly what was planned.
+        if [ -f tfplan ]; then
+          echo "Found saved plan file: tfplan — applying it now"
+          terraform apply -input=false -auto-approve tfplan
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            echo "ERROR: 'terraform apply' failed with exit code $exit_code"
+            exit $exit_code
+          fi
+          echo "Terraform apply completed successfully (applied tfplan)."
+          exit 0
+        fi
+
+        # If tfplan is not found, fail to avoid unintentionally re-planning/applying different changes.
+        echo "ERROR: No saved plan file 'tfplan' found in $TF_WORKDIR. Aborting to avoid drifting from the planned state."
+        echo "If you intentionally want to apply directly, update this step to run:"
+        echo "  terraform apply -var-file=\"${ENV}.tfvars\" -input=false -auto-approve"
+        exit 1
+    env:
+      environment: $(environment)
