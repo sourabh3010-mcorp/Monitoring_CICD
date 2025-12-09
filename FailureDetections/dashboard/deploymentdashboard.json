@@ -10,7 +10,7 @@
     {
       "type": "Microsoft.Portal/dashboards",
       "apiVersion": "2022-06-01-preview",
-      "name": "[parameters('dashboardName')]",
+      "name": "DeploymentDashboard",
       "location": "[resourceGroup().location]",
       "properties": {
         "lenses": {
