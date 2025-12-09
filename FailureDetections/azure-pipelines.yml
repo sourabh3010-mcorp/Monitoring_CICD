@@ -58,7 +58,6 @@ steps:
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate" \
         -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
-      terraform plan -var-file="environment/$(environment).tfvars"
     
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init"
@@ -84,14 +83,19 @@ steps:
   # Terraform Plan
   # ======================================================
 
-  # - script: terraform plan -var-file="environment/$(environment).tfvars"
-  #   workingDirectory: FailureDetections/terraform/
-  #   displayName: "Terraform Plan"
-  #   env:
-  #     ARM_CLIENT_ID: $(TF_CLIENT_ID)
-  #     ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-  #     ARM_TENANT_ID: $(TF_TENANT_ID)
-  #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+  - script: |
+      export ARM_CLIENT_ID=$(TF_CLIENT_ID)
+      export ARM_CLIENT_SECRET=$(TF_CLIENT_SECRET)
+      export ARM_TENANT_ID=$(TF_TENANT_ID)
+      export ARM_SUBSCRIPTION_ID=$(TF_SUBSCRIPTION_ID)
+      terraform plan -var-file="environment/$(environment).tfvars"
+    workingDirectory: FailureDetections/terraform/
+    displayName: "Terraform Plan"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
   # - task: TerraformCLI@0
   #   displayName: 'Terraform Plan'
