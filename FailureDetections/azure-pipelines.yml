@@ -246,8 +246,6 @@
 #                   exit 1
 #               env:
 #                 environment: $(environment)
-
-
 trigger:
   branches:
     include:
@@ -264,8 +262,6 @@ parameters:
 
 variables:
   environment: ${{ parameters.environment }}
-  # Ensure secure variables exist if you still rely on client-secret auth:
-  # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID (secret), TF_SUBSCRIPTION_ID (secret)
 
 jobs:
 - job: Plan
@@ -320,7 +316,6 @@ jobs:
           exit 1
         fi
 
-        # fail fast if a literal placeholder remains
         if git grep -n --heading --line-number '\$(tf_tenant_id)' >/dev/null 2>&1; then
           echo "ERROR: Found literal placeholder '\$(tf_tenant_id)' in repository. Remove it."
           git grep -n --heading --line-number '\$(tf_tenant_id)'
@@ -333,7 +328,6 @@ jobs:
         echo "Planning and saving to tfplan..."
         terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
-        # Publish tfplan as pipeline artifact
         mkdir -p "$(Build.ArtifactStagingDirectory)/tfplan"
         cp tfplan "$(Build.ArtifactStagingDirectory)/tfplan/"
         ls -la "$(Build.ArtifactStagingDirectory)/tfplan"
@@ -355,7 +349,7 @@ jobs:
 
 - deployment: Apply
   displayName: "Terraform Apply (requires environment approval)"
-  environment: 'FailureDetections-${{ parameters.environment }}'  # must exist and have approvals configured in DevOps UI
+  environment: 'FailureDetections-${{ parameters.environment }}'
   pool:
     vmImage: ubuntu-latest
   dependsOn: Plan
@@ -369,12 +363,12 @@ jobs:
             displayName: "Download tfplan artifact"
             inputs:
               artifact: 'tfplan'
-              path: '$(Build.SourcesDirectory)/FailureDetections/terraform'  # place tfplan next to the terraform code
+              path: '$(Build.SourcesDirectory)/FailureDetections/terraform'
 
           - task: AzureCLI@2
             displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
             inputs:
-              azureSubscription: '<SERVICE_CONNECTION_NAME>'   # <-- REPLACE with your Azure service connection name
+              azureSubscription: '<SERVICE_CONNECTION_NAME>'
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
@@ -390,17 +384,15 @@ jobs:
                 fi
                 echo "Applying environment: $ENV"
 
-                # Show that tfplan exists
                 if [ ! -f tfplan ]; then
-                  echo "ERROR: tfplan not found in $TF_WORKDIR. Aborting."
+                  echo "ERROR: tfplan not found in $TF_WORKDIR"
                   ls -la
                   exit 1
                 fi
 
-                # Ensure service connection auth and let provider use CLI token
                 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
                 TENANT_ID=$(az account show --query tenantId -o tsv)
-                printf "az account show -> subscription: <<%s>> tenant: <<%s>>\n" "$SUBSCRIPTION_ID" "$TENANT_ID"
+                printf "az account show -> subscription: %s tenant: %s\n" "$SUBSCRIPTION_ID" "$TENANT_ID"
 
                 export ARM_USE_AZURECLI_AUTH=true
                 export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
@@ -408,5 +400,5 @@ jobs:
 
                 echo "Applying saved plan tfplan..."
                 terraform apply -input=false -auto-approve tfplan
-              env:
-                environment: $(environment)
+            env:
+              environment: $(environment)
