@@ -97,11 +97,7 @@ steps:
   #     ARM_TENANT_ID: $(TF_TENANT_ID)
   #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-  - script: |
-
-
-     az login --service-principal -u "$(TF_CLIENT_ID)" -p "$(TF_CLIENT_SECRET)" --tenant "$(TF_TENANT_ID)"
-     terraform plan -var-file="environment/$(environment).tfvars"
+  - script: terraform plan -var-file="environment/$(environment).tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
     env:
