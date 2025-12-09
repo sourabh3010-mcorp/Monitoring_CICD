@@ -236,5 +236,9 @@ steps:
       environment: $(environment)
       ARM_USE_AZURECLI_AUTH: true
       AZAPI_USE_AZURECLI_AUTH: true
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
 
