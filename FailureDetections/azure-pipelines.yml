@@ -102,15 +102,17 @@ steps:
 
      export ARM_CLIENT_ID="${TF_CLIENT_ID}"
      export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
-     export ARM_TENANT_ID="${TF_TENANT_ID}"
+     export ARM_TENANT_ID="c160a942-c869-429f-8a96-f8c8296d57db"
      export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-
-    echo "Using Tenant ID: $ARM_TENANT_ID"
-    echo "Using Subscription ID: $ARM_SUBSCRIPTION_ID"
 
      terraform plan -var-file="environment/$(environment).tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
 
   # - task: TerraformCLI@0
