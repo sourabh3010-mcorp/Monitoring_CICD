@@ -368,7 +368,7 @@ jobs:
           - task: AzureCLI@2
             displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
             inputs:
-              azureSubscription: '<SERVICE_CONNECTION_NAME>'
+              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
