@@ -7,5 +7,5 @@ workbook_files = [
 ]
 
 dashboard_files = [
-  "moneycorpview.json"
+  "deploymentdashboard.json"
 ]
