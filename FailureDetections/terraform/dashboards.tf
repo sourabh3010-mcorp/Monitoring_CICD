@@ -3,13 +3,25 @@ locals {
 }
 
 
-resource "azurerm_dashboard" "dashboards" {
-  for_each = { for f in local.dashboard_files : basename(f) => f }
 
-  name                = "deployment-dashboard"
-  resource_group_name = var.resource_group_name
-  location            = var.location
+resource "azapi_resource" "dashboards" {
+  for_each = { for f in local.dashboards : basename(f) => f }
 
-  dashboard_properties = file(abspath("${path.module}/../dashboard/${each.value}"))
+  type      = "Microsoft.Portal/dashboards@2022-06-01-preview"
+  name      = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
+  parent_id = azurerm_resource_group.rg.id
+  location  = var.location
+
+  # Disable schema validation to allow newer API versions
+  schema_validation_enabled = false
+
+  # Remove location from JSON if it exists to avoid conflict
+  body = jsondecode(
+    replace(
+      file("${path.module}/../dashboard/${each.value}"),
+      "\"location\"\\s*:\\s*\"[^\"]+\"",
+      ""
+    )
+  )
 }
 
