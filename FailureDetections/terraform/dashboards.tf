@@ -22,6 +22,4 @@ resource "azapi_resource" "dashboards" {
   )
 }
 
-output "dashboards_deployed" {
-  value = keys(azapi_resource.dashboards)
-}
+
