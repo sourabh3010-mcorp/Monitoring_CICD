@@ -9,5 +9,7 @@ resource "azapi_resource" "dashboards" {
   name      = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
   parent_id = azurerm_resource_group.rg.id
 
+  schema_validation_enabled = false
+
   body = jsondecode(file("${path.module}/../dashboard/${each.value}"))
 }
