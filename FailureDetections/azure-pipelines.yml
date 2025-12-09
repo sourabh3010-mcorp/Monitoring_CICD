@@ -17,7 +17,7 @@ parameters:
 
 variables:
   environment: ${{ parameters.environment }}
-  # Ensure the following secure variables exist in the pipeline or variable group:
+  # Ensure the following secure variables exist in the pipeline or variable group if you still need them:
   # TF_CLIENT_ID (secret), TF_CLIENT_SECRET (secret), TF_TENANT_ID (secret), TF_SUBSCRIPTION_ID (secret)
 
 steps:
@@ -31,13 +31,14 @@ steps:
       wget -qO- https://aka.ms/InstallAzureCLIDeb | sudo bash
       sudo apt-get install -y wget unzip
       wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
-      unzip terraform_1.7.5_linux_amd64.zip
-      sudo mv terraform /usr/local/bin/
+      unzip -o terraform_1.7.5_linux_amd64.zip
+      sudo mv -f terraform /usr/local/bin/
       terraform -version
     displayName: "Install Terraform 1.7.5"
 
   # ======================================================
   # Export SP credentials as ARM_* environment variables for Terraform
+  # (this step only echoes values for visibility — keep secrets in variable groups or KeyVault)
   # ======================================================
   - script: |
       echo "Exporting Service Principal credentials as ARM_* env variables"
@@ -48,7 +49,7 @@ steps:
     displayName: "Set ARM_* environment variables for Terraform"
 
   # ======================================================
-  # Terraform Init
+  # Terraform Init (runs from FailureDetections/terraform)
   # ======================================================
   - script: |
       echo "Initializing Terraform backend for environment: $(environment)"
@@ -58,7 +59,6 @@ steps:
         -backend-config="container_name=tfstate" \
         -backend-config="key=$(environment).tfstate" \
         -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
-    
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Init"
     env:
@@ -67,18 +67,21 @@ steps:
       ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-  # ======================================================
+# ======================================================
   # Terraform Validate
   # ======================================================
-  # - script: terraform validate
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Validate"
-  #   env:
-  #     ARM_CLIENT_ID: $(TF_CLIENT_ID)
-  #     ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-  #     ARM_TENANT_ID: $(TF_TENANT_ID)
-  #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+  - script: terraform validate
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Validate"
+    env:
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
+  # ======================================================
+  # Debug listing (optional, keeps as you had)
+  # ======================================================
   - script: |
       set -euo pipefail
       echo "Agent sources directory: $(Build.SourcesDirectory)"
@@ -95,7 +98,7 @@ steps:
       fi
 
       echo
-      echo "Searching for Terraform files in the repo (shows paths of committed .tf files):"
+      echo "Searching for Terraform files in the repo (shows paths of committed .tf files and .tfvars):"
       cd "$(Build.SourcesDirectory)"
       git ls-files | grep '\.tf$' || echo "No .tf files found in repo (git ls-files returned nothing)."
       git ls-files | grep '\.tfvars$' || echo "No .tfvars files found in repo (git ls-files returned nothing)."
@@ -105,57 +108,78 @@ steps:
     displayName: "Debug: list repo and find Terraform files"
 
   # ======================================================
-  # Terraform Plan
+  # Terraform Plan — replaced with AzureCLI@2 to use the service connection
+  # This avoids tenant placeholder issues and uses the service connection for auth.
+  # Uses <env>.tfvars located in FailureDetections/terraform (qa.tfvars or prod.tfvars)
   # ======================================================
+  - task: AzureCLI@2
+    displayName: "Terraform Plan (authenticate with service connection & plan)"
+    inputs:
+      azureSubscription: '<SERVICE_CONNECTION_NAME>'   # <-- REPLACE with your Azure service connection name
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
 
-  - script: |
-      set -euo pipefail
+        TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
+        echo "Agent sources directory: $(Build.SourcesDirectory)"
+        echo "Terraform working dir: $TF_WORKDIR"
 
-      echo "=== Terraform Plan (root tfvars) ==="
+        if [ ! -d "$TF_WORKDIR" ]; then
+          echo "ERROR: Terraform working directory not found: $TF_WORKDIR"
+          ls -la "$(Build.SourcesDirectory)" || true
+          exit 1
+        fi
+        cd "$TF_WORKDIR"
 
-      TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
-      echo "Agent sources directory: $(Build.SourcesDirectory)"
-      echo "Terraform working dir: $TF_WORKDIR"
+        # Resolve environment (runtime variable falls back to compile-time parameter)
+        echo "Compile-time parameter.environment = '${{ parameters.environment }}'"
+        echo "Runtime variable environment = '${environment:-<not-set>}'"
+        ENV="${environment:-${{ parameters.environment }}}"
+        if [ -z "$ENV" ]; then
+          echo "ERROR: environment not set; set the pipeline parameter 'environment' (qa or prod)."
+          exit 1
+        fi
+        echo "Using environment: $ENV"
 
-      if [ ! -d "$TF_WORKDIR" ]; then
-        echo "ERROR: Terraform working directory not found: $TF_WORKDIR"
-        ls -la "$(Build.SourcesDirectory)" || true
-        exit 1
-      fi
+        # Select var-file at terraform root: qa.tfvars or prod.tfvars
+        TFVARS_FILE="${ENV}.tfvars"
+        if [ ! -f "$TFVARS_FILE" ]; then
+          echo "ERROR: Expected var-file '$TFVARS_FILE' not found in $TF_WORKDIR."
+          echo "Contents of terraform/:"
+          ls -la
+          exit 1
+        fi
+        echo "Using var-file: $TFVARS_FILE"
 
-      cd "$TF_WORKDIR"
+        # fail fast if literal placeholder remains in repo
+        if git grep -n --heading --line-number '\$(tf_tenant_id)' >/dev/null 2>&1; then
+          echo "ERROR: Found literal placeholder '\$(tf_tenant_id)' in the repository. Remove/replace it (do NOT leave placeholder text in tfvars/provider files)."
+          git grep -n --heading --line-number '\$(tf_tenant_id)'
+          exit 1
+        fi
 
-      echo "Runtime variable environment = '${environment:-<not-set>}'"
-      ENV="${environment:-}"
-      if [ -z "$ENV" ]; then
-        echo "ERROR: pipeline variable 'environment' is empty. Provide the environment parameter (e.g. qa or prod)."
-        exit 1
-      fi
-      echo "Using environment: $ENV"
+        # Get subscription & tenant from the service connection (AzureCLI@2 handles login)
+        SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+        TENANT_ID=$(az account show --query tenantId -o tsv)
+        printf "az account show -> subscription: <<%s>> tenant: <<%s>>\n" "$SUBSCRIPTION_ID" "$TENANT_ID"
 
-      TFVARS_FILE="${ENV}.tfvars"
-      echo "Looking for var-file: $TFVARS_FILE"
-      if [ ! -f "$TFVARS_FILE" ]; then
-        echo "ERROR: Variables file not found: $TFVARS_FILE"
-        echo "Contents of terraform directory:"
-        ls -la || true
-        exit 1
-      fi
+        # Let the azurerm provider use Azure CLI auth
+        export ARM_USE_AZURECLI_AUTH=true
+        export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
+        export ARM_TENANT_ID="$TENANT_ID"
 
-      echo "Listing files in Terraform folder:"
-      ls -la
+        echo "Running terraform validate..."
+        terraform validate
 
-      echo "Running terraform plan (saving to tfplan)..."
-      terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
+        echo "Running terraform plan (saving to tfplan)..."
+        terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
-      echo "Terraform plan completed. Plan saved to: $(pwd)/tfplan"
-    workingDirectory: FailureDetections/terraform
-    displayName: "Terraform Plan (use <env>.tfvars in terraform root)"
+        echo "Terraform plan completed. Plan saved to: $(pwd)/tfplan"
     env:
-      # Ensure these are set in your pipeline/variable group or use AzureCLI@2 approach if using service connection auth
-      ARM_CLIENT_ID: $(TF_CLIENT_ID)
-      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-      ARM_TENANT_ID: $(TF_TENANT_ID)
-      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
-      # runtime environment value
+      # make runtime environment variable available inside the task script
       environment: $(environment)
+
+  # ======================================================
+  # (Optional) You can add Apply step here — recommended to use AzureCLI@2 as well and apply the saved tfplan.
+  # ======================================================
