@@ -1,14 +1,15 @@
 locals {
-  dashboards = var.dashboard_files
+  dashboard_files = var.dashboard_files
 }
 
-resource "azapi_resource" "dashboards" {
-  for_each = { for f in local.dashboards : basename(f) => f }
 
-  type      = "Microsoft.Portal/dashboards@2019-01-01-preview"
-  name      = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
-  parent_id = azurerm_resource_group.rg.id
+resource "azurerm_dashboard" "dashboards" {
+  for_each = { for f in local.dashboard_files : basename(f) => f }
 
+  name                = "deployment-dashboard"
+  resource_group_name = var.resource_group_name
+  location            = var.location
 
-  body = jsondecode(file("${path.module}/../dashboard/${each.value}"))
+  dashboard_properties = file(abspath("${path.module}/../dashboard/${each.value}"))
 }
+
