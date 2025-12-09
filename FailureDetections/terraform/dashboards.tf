@@ -13,13 +13,10 @@ resource "azapi_resource" "dashboards" {
   # Disable schema validation to allow newer API versions
   schema_validation_enabled = false
 
-  # Safely remove 'location' from JSON body
+  # Remove 'location' key safely
   body = jsonencode(
-    merge(
-      tomap(jsondecode(file("${path.module}/../dashboard/${each.value}")))...
-      , { "location" = null } # this effectively removes it
-    )
+    { for k, v in jsondecode(file("${path.module}/../dashboard/${each.value}")) : 
+        k => v if k != "location"
+    }
   )
 }
-
-
