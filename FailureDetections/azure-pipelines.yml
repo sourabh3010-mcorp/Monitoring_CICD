@@ -236,3 +236,7 @@ steps:
         fi
     env:
       environment: $(environment)
+      ARM_USE_AZURECLI_AUTH: true
+      AZAPI_USE_AZURECLI_AUTH: true
+
+
