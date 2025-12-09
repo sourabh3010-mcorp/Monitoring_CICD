@@ -5,3 +5,7 @@ resource_group_name  = "rg-monitoring-qa"
 workbook_files = [
   "MoneyCorpView.json"
 ]
+
+dashboard_files = [
+  "moneycorpview.json"
+]
