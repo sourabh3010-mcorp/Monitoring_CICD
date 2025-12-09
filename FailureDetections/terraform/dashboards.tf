@@ -3,17 +3,15 @@ locals {
 }
 
 resource "azurerm_resource_group_template_deployment" "dashboards" {
-  for_each = {
-    for f in local.dashboard_files :
-    basename(f) => f
-  }
+  for_each = { for f in local.dashboard_files : basename(f) => f }
 
   name                = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
   resource_group_name = var.resource_group_name
   deployment_mode     = "Incremental"
 
-  # Read the JSON template from the Dashboard folder
-  template_content = file("${path.module}/../dashboard/${each.value}")
+  template_content = file("${path.module}/../Dashboard/${each.value}")
 
-  parameters_content = jsonencode({})
+  parameters_content = jsonencode({
+    dashboardName = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
+  })
 }
