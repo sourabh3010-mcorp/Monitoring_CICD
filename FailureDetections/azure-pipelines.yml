@@ -184,7 +184,6 @@ steps:
   # (Optional) You can add Apply step here — recommended to use AzureCLI@2 as well and apply the saved tfplan.
   # ======================================================
 
-  - deployment: Terraform_Apply
     displayName: "Terraform Apply (requires environment approval)"
     # This environment name must exist in Azure DevOps and have Approvals & checks configured.
     environment: 'FailureDetections-${{ parameters.environment }}'
@@ -246,3 +245,5 @@ steps:
                   exit 1
               env:
                 environment: $(environment)
+
+
