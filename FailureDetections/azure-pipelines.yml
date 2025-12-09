@@ -100,11 +100,7 @@ steps:
   - script: |
 
 
-     export ARM_CLIENT_ID="${TF_CLIENT_ID}"
-     export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
-     export ARM_TENANT_ID="c160a942-c869-429f-8a96-f8c8296d57db"
-     export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-
+     az login --service-principal -u "$(TF_CLIENT_ID)" -p "$(TF_CLIENT_SECRET)" --tenant "$(TF_TENANT_ID)"
      terraform plan -var-file="environment/$(environment).tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
