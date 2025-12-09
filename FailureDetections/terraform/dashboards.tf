@@ -2,10 +2,8 @@ locals {
   dashboard_files = var.dashboard_files
 }
 
-
-
 resource "azapi_resource" "dashboards" {
-  for_each = { for f in local.dashboards : basename(f) => f }
+  for_each = { for f in local.dashboard_files : basename(f) => f }
 
   type      = "Microsoft.Portal/dashboards@2022-06-01-preview"
   name      = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
@@ -24,4 +22,3 @@ resource "azapi_resource" "dashboards" {
     )
   )
 }
-
