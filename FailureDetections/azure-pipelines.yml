@@ -88,7 +88,7 @@ steps:
       export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
       export ARM_TENANT_ID="${TF_TENANT_ID}"
       export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-      terraform plan -var-file="environment/${environment}.tfvars"
+      terraform plan -var-file="/FailureDetections/terraform/environment/${environment}.tfvars"
     workingDirectory: FailureDetections/terraform
     displayName: "Terraform Plan"
 
