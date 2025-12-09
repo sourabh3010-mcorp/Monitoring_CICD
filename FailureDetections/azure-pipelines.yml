@@ -79,42 +79,42 @@ steps:
       ARM_TENANT_ID: $(TF_TENANT_ID)
       ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-  - script: |
-      set -euo pipefail
-      echo "Agent sources directory: $(Build.SourcesDirectory)"
-      echo "Listing repo root:"
-      ls -la "$(Build.SourcesDirectory)" || true
+  # - script: |
+  #     set -euo pipefail
+  #     echo "Agent sources directory: $(Build.SourcesDirectory)"
+  #     echo "Listing repo root:"
+  #     ls -la "$(Build.SourcesDirectory)" || true
 
-      echo
-      echo "Looking for FailureDetections directory (case-sensitive):"
-      if [ -d "$(Build.SourcesDirectory)/FailureDetections" ]; then
-        echo "Found FailureDetections:"
-        ls -la "$(Build.SourcesDirectory)/FailureDetections" || true
-      else
-        echo "FailureDetections directory NOT found at: $(Build.SourcesDirectory)/FailureDetections"
-      fi
+  #     echo
+  #     echo "Looking for FailureDetections directory (case-sensitive):"
+  #     if [ -d "$(Build.SourcesDirectory)/FailureDetections" ]; then
+  #       echo "Found FailureDetections:"
+  #       ls -la "$(Build.SourcesDirectory)/FailureDetections" || true
+  #     else
+  #       echo "FailureDetections directory NOT found at: $(Build.SourcesDirectory)/FailureDetections"
+  #     fi
 
-      echo
-      echo "Searching for Terraform files in the repo (shows paths of committed .tf files):"
-      cd "$(Build.SourcesDirectory)"
-      git ls-files | grep '\.tf$' || echo "No .tf files found in repo (git ls-files returned nothing)."
+  #     echo
+  #     echo "Searching for Terraform files in the repo (shows paths of committed .tf files):"
+  #     cd "$(Build.SourcesDirectory)"
+  #     git ls-files | grep '\.tf$' || echo "No .tf files found in repo (git ls-files returned nothing)."
 
-      echo
-      echo "If the terraform files are located at a different path, update your workingDirectory or `cd` to the correct folder."
-    displayName: "Debug: list repo and find Terraform files"
+  #     echo
+  #     echo "If the terraform files are located at a different path, update your workingDirectory or `cd` to the correct folder."
+  #   displayName: "Debug: list repo and find Terraform files"
 
   # ======================================================
   # Terraform Plan
   # ======================================================
 
-  # - script: |
-  #     export ARM_CLIENT_ID="${TF_CLIENT_ID}"
-  #     export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
-  #     export ARM_TENANT_ID="${TF_TENANT_ID}"
-  #     export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-  #     terraform plan -var-file="/FailureDetections/terraform/environment/${environment}.tfvars"
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Plan"
+  - script: |
+      export ARM_CLIENT_ID="${TF_CLIENT_ID}"
+      export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
+      export ARM_TENANT_ID="${TF_TENANT_ID}"
+      export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
+      terraform plan -var-file="/FailureDetections/terraform/${environment}.tfvars"
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Plan"
 
 
 # Replace your existing Plan and Apply steps with the two steps below.
