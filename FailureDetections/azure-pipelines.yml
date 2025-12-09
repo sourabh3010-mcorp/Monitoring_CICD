@@ -194,49 +194,22 @@ steps:
         set -euo pipefail
 
         TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
-        echo "Terraform working dir: $TF_WORKDIR"
         cd "$TF_WORKDIR" || { echo "ERROR: Terraform working directory not found: $TF_WORKDIR"; exit 1; }
 
-        # Resolve environment (runtime variable)
-        ENV="${environment:-}"
-        if [ -z "$ENV" ]; then
-          echo "ERROR: pipeline variable 'environment' is empty. Provide the environment parameter (e.g. qa or prod)."
-          exit 1
-        fi
-        echo "Using environment: $ENV"
-
-        # Ensure Azure CLI is logged in via the service connection
-        echo "Checking Azure CLI login..."
+        # Verify Azure CLI login
         az account show --output table
 
-        # Capture subscription and tenant from Azure CLI
-        SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-        TENANT_ID=$(az account show --query tenantId -o tsv)
-        echo "Using subscription: $SUBSCRIPTION_ID, tenant: $TENANT_ID"
-
-        # Force Terraform to use Azure CLI auth for both providers
-        export ARM_USE_AZURECLI_AUTH=true
-        export AZAPI_USE_AZURECLI_AUTH=true
-        export ARM_SUBSCRIPTION_ID="$SUBSCRIPTION_ID"
-        export ARM_TENANT_ID="$TENANT_ID"
-
-        # Apply saved tfplan if it exists
+        # Apply saved tfplan
         if [ -f tfplan ]; then
-          echo "Found saved plan file: tfplan — applying it now"
           terraform apply -input=false -auto-approve tfplan
-          exit_code=$?
-          if [ $exit_code -ne 0 ]; then
-            echo "ERROR: 'terraform apply' failed with exit code $exit_code"
-            exit $exit_code
-          fi
-          echo "Terraform apply completed successfully (applied tfplan)."
         else
           echo "ERROR: No saved plan file 'tfplan' found. Aborting."
           exit 1
         fi
     env:
       environment: $(environment)
-      ARM_USE_AZURECLI_AUTH: true
-      AZAPI_USE_AZURECLI_AUTH: true
+      ARM_USE_AZURECLI_AUTH: true      # For azurerm provider
+      AZAPI_USE_AZURECLI_AUTH: true    # For azapi provider
+
 
 
