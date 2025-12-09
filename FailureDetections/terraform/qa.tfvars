@@ -9,3 +9,8 @@ workbook_files = [
 dashboard_files = [
   "deploymentdashboard.json"
 ]
+
+# REQUIRED: fixed ID so Azure does NOT create a new workbook every run
+workbook_id = {
+  "MoneyCorpView.json" = "qa-moneycorpview"
+}
