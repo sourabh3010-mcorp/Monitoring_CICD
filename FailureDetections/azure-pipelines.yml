@@ -84,63 +84,58 @@ steps:
   # Terraform Plan
   # ======================================================
 
-  # - script: |
-  #     export ARM_CLIENT_ID="${TF_CLIENT_ID}"
-  #     export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
-  #     export ARM_TENANT_ID="${TF_TENANT_ID}"
-  #     export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-  #     terraform plan -var-file="/FailureDetections/terraform/${environment}.tfvars"
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Plan"
-
-
   - script: |
-      set -euo pipefail
-      echo "=== Terraform Plan: verify environment and tfvars path ==="
+      export ARM_CLIENT_ID="${TF_CLIENT_ID}"
+      export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
+      export ARM_TENANT_ID="${TF_TENANT_ID}"
+      export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
+      terraform plan -var-file="/FailureDetections/terraform/qa.tfvars"
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Plan"
 
-      TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
-      echo "Agent sources directory: $(Build.SourcesDirectory)"
-      echo "Terraform working dir: $TF_WORKDIR"
 
-      if [ ! -d "$TF_WORKDIR" ]; then
-        echo "ERROR: Terraform working directory not found: $TF_WORKDIR"
-        ls -la "$(Build.SourcesDirectory)" || true
-        exit 1
-      fi
+  # - script: |
+  #     set -euo pipefail
+  #     echo "=== Terraform Plan: verify environment and tfvars path ==="
 
-      cd "$TF_WORKDIR"
+  #     TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
+  #     echo "Agent sources directory: $(Build.SourcesDirectory)"
+  #     echo "Terraform working dir: $TF_WORKDIR"
 
-      # Show both compile-time parameter and runtime variable (for debug)
-      echo "Compile-time parameter.environment = '${{ parameters.environment }}'"
-      echo "Runtime variable (expanded in script) environment = '${environment:-<not-set>}'"
+  #     if [ ! -d "$TF_WORKDIR" ]; then
+  #       echo "ERROR: Terraform working directory not found: $TF_WORKDIR"
+  #       ls -la "$(Build.SourcesDirectory)" || true
+  #       exit 1
+  #     fi
 
-      ENV="${environment:-${{ parameters.environment }}}"
-      if [ -z "$ENV" ]; then
-        echo "ERROR: environment is empty. Provide the environment parameter (qa or prod)."
-        exit 1
-      fi
-      echo "Using environment: $ENV"
+  #     cd "$TF_WORKDIR"
 
-      TFVARS_FILE="${ENV}.tfvars"
-      echo "Expecting var-file at: $TFVARS_FILE"
+  #     # Show both compile-time parameter and runtime variable (for debug)
+  #     echo "Compile-time parameter.environment = '${{ parameters.environment }}'"
+  #     echo "Runtime variable (expanded in script) environment = '${environment:-<not-set>}'"
 
-      if [ ! -f "$TFVARS_FILE" ]; then
-        echo "ERROR: Variables file not found: $TFVARS_FILE"
-        echo "Contents of terraform folder:"
-        ls -la || true
-        exit 1
-      fi
+  #     ENV="${environment:-${{ parameters.environment }}}"
+  #     if [ -z "$ENV" ]; then
+  #       echo "ERROR: environment is empty. Provide the environment parameter (qa or prod)."
+  #       exit 1
+  #     fi
+  #     echo "Using environment: $ENV"
 
-      echo "Initializing Terraform backend..."
-      terraform init -input=false
+  #     TFVARS_FILE="${ENV}.tfvars"
+  #     echo "Expecting var-file at: $TFVARS_FILE"
 
-      echo "Validating Terraform configuration..."
-      terraform validate
+  #     if [ ! -f "$TFVARS_FILE" ]; then
+  #       echo "ERROR: Variables file not found: $TFVARS_FILE"
+  #       echo "Contents of terraform folder:"
+  #       ls -la || true
+  #       exit 1
+  #     fi
 
-      echo "Running terraform plan and saving to tfplan..."
-      terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
-    displayName: "Terraform Plan (validate env & tfvars, produce tfplan)"
-    env:
-      # ensure runtime variable is present in the script
-      environment: ${{ parameters.environment }}
+
+  #     echo "Running terraform plan and saving to tfplan..."
+  #     terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
+  #   displayName: "Terraform Plan (validate env & tfvars, produce tfplan)"
+  #   env:
+  #     # ensure runtime variable is present in the script
+  #     environment: ${{ parameters.environment }}
 
