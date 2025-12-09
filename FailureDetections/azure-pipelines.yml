@@ -108,119 +108,60 @@ steps:
   # Terraform Plan
   # ======================================================
 
-  # - script: |
-  #     export ARM_CLIENT_ID="${TF_CLIENT_ID}"
-  #     export ARM_CLIENT_SECRET="${TF_CLIENT_SECRET}"
-  #     export ARM_TENANT_ID="${TF_TENANT_ID}"
-  #     export ARM_SUBSCRIPTION_ID="${TF_SUBSCRIPTION_ID}"
-  #     terraform plan -var-file="/FailureDetections/terraform/${environment}.tfvars"
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Plan"
+  - script: |
+      set -euo pipefail
 
+      echo "=== Terraform Plan (root tfvars) ==="
 
-# Replace your existing Plan and Apply steps with the two steps below.
-# Plan step: validates env & tfvars, runs terraform init/validate/plan -out=tfplan
-  # - script: |
-  #     set -euo pipefail
-  #     TF_WORKDIR="FailureDetections/terraform"
-  #     echo "Working directory: $TF_WORKDIR"
-  #     cd "$TF_WORKDIR" || { echo "ERROR: working directory not found: $TF_WORKDIR"; exit 1; }
+      TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
+      echo "Agent sources directory: $(Build.SourcesDirectory)"
+      echo "Terraform working dir: $TF_WORKDIR"
 
-  #     # Ensure pipeline provided environment
-  #     ENV="${environment:-}"
-  #     if [ -z "$ENV" ]; then
-  #       echo "ERROR: pipeline variable 'environment' is empty. Provide the environment parameter (e.g. qa or prod)."
-  #       echo "Current parameters/variables:"
-  #       echo "  parameters.environment = ${{ parameters.environment }}"
-  #       echo "  variables.environment  = ${environment:-<not-set>}"
-  #       exit 1
-  #     fi
+      if [ ! -d "$TF_WORKDIR" ]; then
+        echo "ERROR: Terraform working directory not found: $TF_WORKDIR"
+        ls -la "$(Build.SourcesDirectory)" || true
+        exit 1
+      fi
 
-  #     TFVARS_FILE="environment/${ENV}.tfvars"
-  #     echo "Using var-file: $TFVARS_FILE"
+      cd "$TF_WORKDIR"
 
-  #     if [ ! -f "$TFVARS_FILE" ]; then
-  #       echo "ERROR: Variables file not found: $TFVARS_FILE"
-  #       echo "Contents of environment/ directory:"
-  #       ls -la environment || true
-  #       echo ""
-  #       echo "Ensure you have a file named 'environment/${ENV}.tfvars' in FailureDetections/terraform."
-  #       exit 1
-  #     fi
+      echo "Runtime variable environment = '${environment:-<not-set>}'"
+      ENV="${environment:-}"
+      if [ -z "$ENV" ]; then
+        echo "ERROR: pipeline variable 'environment' is empty. Provide the environment parameter (e.g. qa or prod)."
+        exit 1
+      fi
+      echo "Using environment: $ENV"
 
-  #     echo "Listing files in Terraform folder:"
-  #     ls -la
+      TFVARS_FILE="${ENV}.tfvars"
+      echo "Looking for var-file: $TFVARS_FILE"
+      if [ ! -f "$TFVARS_FILE" ]; then
+        echo "ERROR: Variables file not found: $TFVARS_FILE"
+        echo "Contents of terraform directory:"
+        ls -la || true
+        exit 1
+      fi
 
-  #     echo "Initializing Terraform..."
-  #     terraform init -input=false
+      echo "Listing files in Terraform folder:"
+      ls -la
 
-  #     echo "Validating Terraform configuration..."
-  #     terraform validate
+      echo "Initializing Terraform (safe, non-interactive)..."
+      terraform init -input=false
 
-  #     echo "Running terraform plan and saving to tfplan..."
-  #     terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
-  #   displayName: "Terraform Plan (validate env & tfvars, produce tfplan)"
-  #   workingDirectory: FailureDetections/terraform
-  #   env:
-  #     # map pipeline parameter into the script
-  #     environment: $(environment)
+      echo "Validating Terraform configuration..."
+      terraform validate
 
-  # # Apply step: apply the saved plan (tfplan) if present, otherwise fail (explicit is safer)
-  # - script: |
-  #     set -euo pipefail
-  #     TF_WORKDIR="FailureDetections/terraform"
-  #     cd "$TF_WORKDIR" || { echo "ERROR: working directory not found: $TF_WORKDIR"; exit 1; }
+      echo "Running terraform plan (saving to tfplan)..."
+      terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
-  #     ENV="${environment:-}"
-  #     if [ -z "$ENV" ]; then
-  #       echo "ERROR: pipeline variable 'environment' is empty. Aborting apply."
-  #       exit 1
-  #     fi
-
-  #     if [ -f tfplan ]; then
-  #       echo "Applying saved plan file tfplan..."
-  #       terraform apply -input=false -auto-approve tfplan
-  #     else
-  #       echo "ERROR: No saved plan file found (tfplan). Aborting apply to avoid drifting from what was planned."
-  #       echo "If you want to apply directly without a saved plan, update this step to pass -var-file=\"environment/${ENV}.tfvars\" explicitly."
-  #       exit 1
-  #     fi
-  #   displayName: "Terraform Apply (apply saved plan)"
-  #   workingDirectory: FailureDetections/terraform
-  #   env:
-  #     environment: $(environment)
-
-  # - script: terraform plan -var-file="environment/$(environment).tfvars"
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Plan"
-  #   env:
-  #     ARM_CLIENT_ID: $(TF_CLIENT_ID)
-  #     ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-  #     ARM_TENANT_ID: $(TF_TENANT_ID)
-  #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
-
-
-  # - task: TerraformCLI@0
-  #   displayName: 'Terraform Plan'
-  #   inputs:
-  #     command: 'plan'
-  #     workingDirectory: 'FailureDetections/terraform/'
-  #     environmentServiceName: 'VS Professional Subscription-Nitin Pradhan'  # Replace with your service connection name
-  #     commandOptions: '-var-file="environment/$(environment).tfvars'
-
-
-
-  # ======================================================
-  # Terraform Apply (changed)
-  # ======================================================
-  # - script: |
-  #     echo "Running terraform apply for environment: $(environment)"
-  #     # Run apply non-interactively; use same var-file as plan. Remove -auto-approve if you require manual approval.
-  #     terraform apply -var-file="environment/$(environment).tfvars" -input=false -auto-approve
-  #   workingDirectory: FailureDetections/terraform
-  #   displayName: "Terraform Apply"
-  #   env:
-  #     ARM_CLIENT_ID: $(TF_CLIENT_ID)
-  #     ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-  #     ARM_TENANT_ID: $(TF_TENANT_ID)
-  #     ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+      echo "Terraform plan completed. Plan saved to: $(pwd)/tfplan"
+    workingDirectory: FailureDetections/terraform
+    displayName: "Terraform Plan (use <env>.tfvars in terraform root)"
+    env:
+      # Ensure these are set in your pipeline/variable group or use AzureCLI@2 approach if using service connection auth
+      ARM_CLIENT_ID: $(TF_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+      ARM_TENANT_ID: $(TF_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+      # runtime environment value
+      environment: $(environment)
