@@ -8,11 +8,6 @@ resource "azapi_resource" "dashboards" {
   type      = "Microsoft.Portal/dashboards@2022-06-01-preview"
   name      = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
   parent_id = azurerm_resource_group.rg.id
-  location  = var.location
 
   body = jsondecode(file("${path.module}/../dashboard/${each.value}"))
-}
-
-output "dashboards_deployed" {
-  value = keys(azapi_resource.dashboards)
 }
