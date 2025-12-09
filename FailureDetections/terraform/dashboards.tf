@@ -9,7 +9,7 @@ resource "azurerm_resource_group_template_deployment" "dashboards" {
   resource_group_name = var.resource_group_name
   deployment_mode     = "Incremental"
 
-  template_content = file("${path.module}/../Dashboard/${each.value}")
+  template_content = file("${path.module}/../dashboard/${each.value}")
 
   parameters_content = jsonencode({
     dashboardName = "${var.environment}-dashboard-${replace(each.key, ".json", "")}"
