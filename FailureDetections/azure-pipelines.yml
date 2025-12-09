@@ -145,12 +145,6 @@ steps:
       echo "Listing files in Terraform folder:"
       ls -la
 
-      echo "Initializing Terraform (safe, non-interactive)..."
-      terraform init -input=false
-
-      echo "Validating Terraform configuration..."
-      terraform validate
-
       echo "Running terraform plan (saving to tfplan)..."
       terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
