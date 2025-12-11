@@ -11,6 +11,6 @@ $dashboardJson = Get-Content $DashboardFilePath -Raw
 az portal dashboard create `
     --name $DashboardName `
     --resource-group $resource_group_name `
-    --dashboard "$dashboardJson"
+    --input-path "$dashboardJson"
 
 Write-Host "Dashboard deployment completed."
