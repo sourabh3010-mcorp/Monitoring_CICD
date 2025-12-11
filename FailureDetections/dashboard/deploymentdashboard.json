@@ -83,11 +83,11 @@
       }
     }
   },
-  "name": "Moneycorp",
+  "name": "DeploymentCICD",
   "type": "Microsoft.Portal/dashboards",
   "location": "INSERT LOCATION",
   "tags": {
-    "hidden-title": "Moneycorp"
+    "hidden-title": "DeploymentCICD"
   },
   "apiVersion": "2022-12-01-preview"
 }
