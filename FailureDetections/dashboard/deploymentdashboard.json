@@ -87,7 +87,7 @@
   "type": "Microsoft.Portal/dashboards",
   "location": "INSERT LOCATION",
   "tags": {
-    "hidden-title": "DeploymentCICD"
+    "hidden-title": "DeploymentCICDtest"
   },
   "apiVersion": "2022-12-01-preview"
 }
