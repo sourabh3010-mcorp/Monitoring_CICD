@@ -1,16 +1,22 @@
 param(
     [string]$DashboardName,
-    [string]$resource_group_name,
+    [string]$ResourceGroup,
     [string]$DashboardFilePath
 )
 
-Write-Host "Deploying Azure Portal Dashboard: $DashboardName"
+Write-Host "Deploying Azure dashboard using ARM template..."
 
-$dashboardJson = Get-Content $DashboardFilePath -Raw
+# Load dashboard JSON
+$dashboardJson = Get-Content $DashboardFilePath -Raw | ConvertFrom-Json
 
-az portal dashboard create `
-    --name $DashboardName `
-    --resource-group $resource_group_name `
-    --input-path "$dashboardJson"
+# Path to ARM template
+$armTemplate = "../dashboard/deploymentdashboard.json"
+
+az deployment group create `
+  --resource-group $ResourceGroup `
+  --name "dashboard-$DashboardName" `
+  --template-file $armTemplate `
+  --parameters dashboardName="DeploymentCICD" location="eastus"
+
 
 Write-Host "Dashboard deployment completed."
