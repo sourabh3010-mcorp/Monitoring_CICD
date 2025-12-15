@@ -24,7 +24,7 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
       value = var.workbook_id[each.key]
     }
     workbookDisplayName = {
-      value = "Health score ${var.environment}"
+      value = "Health score ${upper(var.environment)}"
     }
     workbookType = {
       value = "workbook"
@@ -34,6 +34,7 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
     }
   })
 }
+
 
 
 
