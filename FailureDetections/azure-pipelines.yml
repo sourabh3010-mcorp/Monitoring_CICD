@@ -100,6 +100,7 @@ steps:
       echo
       echo "Searching for Terraform files in the repo (shows paths of committed .tf files and .tfvars):"
       cd "$(Build.SourcesDirectory)"
+      git ls-files
       git ls-files | grep '\.tf$' || echo "No .tf files found in repo (git ls-files returned nothing)."
       git ls-files | grep '\.tfvars$' || echo "No .tfvars files found in repo (git ls-files returned nothing)."
 
