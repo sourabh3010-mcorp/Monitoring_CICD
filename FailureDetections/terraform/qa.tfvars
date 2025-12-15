@@ -11,6 +11,6 @@ workbook_id = {
 }
 
 dashboard_name = "failure-detection-dashboard-qa"
-dashboard_file = "../dashboard/deploymentdashboard.json"
+dashboard_file = "../dashboard/QA/deploymentdashboard.json"
 
 
