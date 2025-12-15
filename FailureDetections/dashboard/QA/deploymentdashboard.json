@@ -117,6 +117,78 @@
                 }
               }
             }
+          },
+          {
+            "position": {
+              "x": 2,
+              "y": 2,
+              "colSpan": 2,
+              "rowSpan": 1
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "ComponentId",
+                  "value": {
+                    "Name": "azure monitor",
+                    "ResourceId": "azure monitor",
+                    "LinkedApplicationType": -2
+                  }
+                },
+                {
+                  "name": "ResourceIds",
+                  "value": [
+                    "azure monitor"
+                  ],
+                  "isOptional": true
+                },
+                {
+                  "name": "Type",
+                  "value": "workbook",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeContext",
+                  "isOptional": true
+                },
+                {
+                  "name": "ConfigurationId",
+                  "value": "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867/resourcegroups/rg-monitoring-qa/providers/microsoft.insights/workbooks/f1c2d3a4-9b87-4e6f-8c5d-2a7b1e9f0d34",
+                  "isOptional": true
+                },
+                {
+                  "name": "ViewerMode",
+                  "value": false,
+                  "isOptional": true
+                },
+                {
+                  "name": "GalleryResourceType",
+                  "value": "azure monitor",
+                  "isOptional": true
+                },
+                {
+                  "name": "NotebookParams",
+                  "value": "{\"AppName\":\"\"}",
+                  "isOptional": true
+                },
+                {
+                  "name": "Location",
+                  "value": "eastus",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "1.0",
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/AppInsightsExtension/PartType/NotebookPinnedPart",
+              "viewState": {
+                "content": {
+                  "configurationId": "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867/resourcegroups/rg-monitoring-qa/providers/microsoft.insights/workbooks/f1c2d3a4-9b87-4e6f-8c5d-2a7b1e9f0d34"
+                }
+              }
+            }
           }
         ]
       }
@@ -134,7 +206,7 @@
         }
       }
     }
-    }
+  }
     }
   ]
 }
