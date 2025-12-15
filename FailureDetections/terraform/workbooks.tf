@@ -1,28 +1,13 @@
 
 locals {
-  workbooks_path = "${path.module}/../workbooks/${lower(var.environment)}"
-
   workbook_files = var.workbook_files
 }
 
-locals {
-  missing_files = [
-    for f in var.workbook_files :
-    f if !fileexists("${local.workbooks_path}/${f}")
-  ]
-}
 
-resource "null_resource" "validate_workbooks" {
-  count = length(local.missing_files) > 0 ? 1 : 0
-
-  provisioner "local-exec" {
-    command = "echo Missing workbook files: ${join(", ", local.missing_files)} && exit 1"
-  }
-}
 
 resource "azurerm_resource_group_template_deployment" "workbooks" {
   for_each = {
-    for f in local.workbook_files :
+    for f in var.workbook_files :
     f => f
   }
 
@@ -30,7 +15,9 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
   resource_group_name = var.resource_group_name
   deployment_mode     = "Incremental"
 
-  template_content = file("${local.workbooks_path}/${each.value}")
+  template_content = file(
+    "${path.module}/../workbooks/${lower(var.environment)}/${each.value}"
+  )
 
   parameters_content = jsonencode({
     workbookId = {
@@ -47,5 +34,6 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
     }
   })
 }
+
 
 
