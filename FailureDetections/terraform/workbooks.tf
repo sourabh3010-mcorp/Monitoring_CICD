@@ -1,9 +1,7 @@
-
 locals {
-  workbook_files = var.workbook_files
+  # Path to environment-specific workbooks
+  workbooks_path = "${path.module}/workbooks/${lower(var.environment)}"
 }
-
-
 
 resource "azurerm_resource_group_template_deployment" "workbooks" {
   for_each = {
@@ -15,9 +13,7 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
   resource_group_name = var.resource_group_name
   deployment_mode     = "Incremental"
 
-  template_content = file(
-    "${path.module}/../workbooks/${lower(var.environment)}/${each.value}"
-  )
+  template_content = file("${local.workbooks_path}/${each.value}")
 
   parameters_content = jsonencode({
     workbookId = {
@@ -34,7 +30,3 @@ resource "azurerm_resource_group_template_deployment" "workbooks" {
     }
   })
 }
-
-
-
-
