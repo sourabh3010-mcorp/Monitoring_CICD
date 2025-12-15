@@ -33,3 +33,8 @@ variable "dashboard_file" {
   type        = string
   default     = "../dashboard/dashboard.json"
 }
+
+variable "workbook_display_name" {
+  type = map(string)
+  description = "Mapping of workbook file to display name"
+}
