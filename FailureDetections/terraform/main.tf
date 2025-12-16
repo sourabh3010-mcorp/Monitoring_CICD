@@ -13,6 +13,11 @@ resource "time_sleep" "after_rg" {
   depends_on = [azurerm_resource_group.rg]
 
   create_duration = "30s"
+
+  triggers = {
+    always_run = timestamp()
+  }
+
 }
 
 
@@ -50,12 +55,17 @@ resource "time_sleep" "after_workbooks" {
   depends_on = [azurerm_resource_group_template_deployment.workbooks]
 
   create_duration = "30s"
+
+  triggers = {
+    always_run = timestamp()
+  }
+  
 }
 
 resource "null_resource" "deploy_dashboard" {
   depends_on = [time_sleep.after_workbooks]
 
-  
+
   triggers = {
     dashboard_hash = filesha256(var.dashboard_file)
     environment    = var.environment
