@@ -20,5 +20,14 @@ workbook_display_name = {
 dashboard_name = "failure-detection-dashboard-qa"
 dashboard_file = "../dashboard/QA/deploymentdashboard.json"
 
+alert_emails = [
+  "Sourabh.chakraborty@globant.com",
+  "team.alerts@globant.com",
+  "oncall@globant.com"
+]
+
+alert_rule_name_1 = "cicd-alert1-ag"
+alert_rule_name_2 = "cicd-alert2-ag"
+alert_rule_name_3 = "cicd-alert3-ag"
 
 

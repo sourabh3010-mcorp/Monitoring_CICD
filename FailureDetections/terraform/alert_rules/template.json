@@ -1,0 +1,160 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "alert_rule_name_1": {
+            "defaultValue": "cicd-alert1-ag",
+            "type": "String"
+        },
+        "alert_rule_name_2": {
+            "defaultValue": "cicd-alert2-ag",
+            "type": "String"
+        },
+        "alert_rule_name_3": {
+            "defaultValue": "cicd-alert3-ag",
+            "type": "String"
+        },
+        "actiongroups_test_ag_externalid": {
+            "defaultValue": "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867/resourceGroups/tfstate-rg/providers/microsoft.insights/actiongroups/test-ag",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "microsoft.insights/scheduledqueryrules",
+            "apiVersion": "2025-01-01-preview",
+            "name": "[parameters('alert_rule_name_1')]",
+            "location": "centralindia",
+            "kind": "LogAlert",
+            "properties": {
+                "displayName": "[parameters('alert_rule_name_1')]",
+                "description": "delete this",
+                "severity": 3,
+                "enabled": true,
+                "evaluationFrequency": "PT15M",
+                "scopes": [
+                    "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867"
+                ],
+                "targetResourceTypes": [
+                    "microsoft.insights/components"
+                ],
+                "windowSize": "PT15M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "query": "AppRequests\n| where Name == \"http_trigger1\"\n",
+                            "timeAggregation": "Count",
+                            "dimensions": [],
+                            "resourceIdColumn": "_ResourceId",
+                            "operator": "GreaterThan",
+                            "threshold": 0,
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 1,
+                                "minFailingPeriodsToAlert": 1
+                            }
+                        }
+                    ]
+                },
+                "autoMitigate": false,
+                "actions": {
+                    "actionGroups": [
+                        "[parameters('actiongroups_test_ag_externalid')]"
+                    ],
+                    "customProperties": {},
+                    "actionProperties": {}
+                }
+            }
+        },
+        {
+            "type": "microsoft.insights/scheduledqueryrules",
+            "apiVersion": "2025-01-01-preview",
+            "name": "[parameters('alert_rule_name_2')]",
+            "location": "centralindia",
+            "kind": "LogAlert",
+            "properties": {
+                "displayName": "[parameters('alert_rule_name_2')]",
+                "description": "delete this",
+                "severity": 3,
+                "enabled": true,
+                "evaluationFrequency": "PT5M",
+                "scopes": [
+                    "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867"
+                ],
+                "targetResourceTypes": [
+                    "microsoft.insights/components"
+                ],
+                "windowSize": "PT5M",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "query": "AppRequests\n| where Name == \"http_trigger1\"\n",
+                            "timeAggregation": "Count",
+                            "dimensions": [],
+                            "resourceIdColumn": "_ResourceId",
+                            "operator": "GreaterThan",
+                            "threshold": 0,
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 1,
+                                "minFailingPeriodsToAlert": 1
+                            }
+                        }
+                    ]
+                },
+                "autoMitigate": false,
+                "actions": {
+                    "actionGroups": [
+                        "[parameters('actiongroups_test_ag_externalid')]"
+                    ],
+                    "customProperties": {},
+                    "actionProperties": {}
+                }
+            }
+        },
+        {
+            "type": "microsoft.insights/scheduledqueryrules",
+            "apiVersion": "2025-01-01-preview",
+            "name": "[parameters('alert_rule_name_3')]",
+            "location": "centralindia",
+            "kind": "LogAlert",
+            "properties": {
+                "displayName": "[parameters('alert_rule_name_3')]",
+                "description": "delete this",
+                "severity": 3,
+                "enabled": true,
+                "evaluationFrequency": "PT1H",
+                "scopes": [
+                    "/subscriptions/2a2d0d74-7f86-4edd-bdf5-1f127a432867"
+                ],
+                "targetResourceTypes": [
+                    "microsoft.insights/components"
+                ],
+                "windowSize": "PT1H",
+                "criteria": {
+                    "allOf": [
+                        {
+                            "query": "AppRequests\n| where Name == \"http_trigger1\"\n",
+                            "timeAggregation": "Count",
+                            "dimensions": [],
+                            "resourceIdColumn": "_ResourceId",
+                            "operator": "GreaterThan",
+                            "threshold": 0,
+                            "failingPeriods": {
+                                "numberOfEvaluationPeriods": 1,
+                                "minFailingPeriodsToAlert": 1
+                            }
+                        }
+                    ]
+                },
+                "autoMitigate": false,
+                "actions": {
+                    "actionGroups": [
+                        "[parameters('actiongroups_test_ag_externalid')]"
+                    ],
+                    "customProperties": {},
+                    "actionProperties": {}
+                }
+            }
+        }
+    ]
+}

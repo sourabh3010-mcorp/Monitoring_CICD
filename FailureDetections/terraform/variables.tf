@@ -38,3 +38,23 @@ variable "workbook_display_name" {
   type = map(string)
   description = "Mapping of workbook file to display name"
 }
+
+variable "alert_rule_name_1" {
+  description = "Name of the Alert Rule 1"
+  type        = string
+}
+
+variable "alert_rule_name_2" {
+  description = "Name of the Alert Rule 2"
+  type        = string
+}
+
+variable "alert_rule_name_3" {
+  description = "Name of the Alert Rule 3"
+  type        = string
+}
+
+variable "alert_emails" {
+  type        = list(string)
+  description = "List of email addresses for alert notifications"
+}
