@@ -55,7 +55,7 @@ stages:
   jobs:
   - deployment: TerraformDeploy
     displayName: "Terraform Deployment"
-    environment: ${{ parameters.environment }}   # Enables approvals
+    # environment: ${{ parameters.environment }}   # Enables approvals
     strategy:
       runOnce:
         deploy:
