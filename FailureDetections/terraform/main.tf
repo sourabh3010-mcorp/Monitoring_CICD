@@ -67,7 +67,6 @@ resource "null_resource" "deploy_dashboard" {
 
 
   triggers = {
-    dashboard_hash = filesha256(var.dashboard_file)
     environment    = var.environment
   }
 

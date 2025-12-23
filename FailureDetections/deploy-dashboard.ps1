@@ -15,7 +15,7 @@ $armTemplate = "../dashboard/deploymentdashboard.json"
 az deployment group create `
   --resource-group $ResourceGroup `
   --name "dashboard-$DashboardName" `
-  --template-file $dashboardJson `
+  --template-file $DashboardFilePath `
   --parameters dashboardName="DeploymentCICD" location="eastus"
 
 
