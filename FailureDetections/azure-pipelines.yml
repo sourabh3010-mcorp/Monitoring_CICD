@@ -215,7 +215,7 @@ stages:
                   terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
                   echo "Terraform plan completed. Plan saved to: $(pwd)/tfplan"
-                  env:
+              env:
                     # make runtime environment variable available inside the task script
                     environment: $(environment)
 
@@ -276,5 +276,5 @@ stages:
                   echo "If you intentionally want to apply directly, change this step to run:"
                   echo "  terraform apply -var-file=\"${ENV}.tfvars\" -input=false -auto-approve"
                   exit 1
-                  env:
+              env:
                     environment: $(environment)
