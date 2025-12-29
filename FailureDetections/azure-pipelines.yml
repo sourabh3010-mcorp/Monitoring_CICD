@@ -18,6 +18,7 @@ stages:
   displayName: "Build & Terraform Plan"
   jobs:
   - job: Build
+    displayName: "Terraform Build"
     pool:
       vmImage: ubuntu-latest
 
@@ -56,7 +57,6 @@ stages:
     - publish: $(tfWorkingDir)
       artifact: terraform-plans
 
-
 # =========================================================
 # DEPLOY TO QA
 # =========================================================
@@ -64,87 +64,67 @@ stages:
   displayName: "Deploy to QA"
   dependsOn: Build
   jobs:
-  - deployment: QA
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: terraform-plans
+  - job: QA
+    displayName: "Apply QA"
+    pool:
+      vmImage: ubuntu-latest
 
-          - task: AzureCLI@2
-            displayName: "Terraform Apply QA"
-            inputs:
-              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                set -e
-                cd terraform-plans
+    steps:
+    - download: current
+      artifact: terraform-plans
 
-                export ARM_USE_AZURECLI_AUTH=true
-                terraform apply -auto-approve qa.tfplan
+    - task: AzureCLI@2
+      displayName: "Terraform Apply QA"
+      inputs:
+        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -e
+          cd terraform-plans
 
+          export ARM_USE_AZURECLI_AUTH=true
+          terraform apply -auto-approve qa.tfplan
 
 # =========================================================
-# DEPLOY TO PROD (MANUAL APPROVAL)
+# DEPLOY TO PROD
 # =========================================================
 - stage: Deploy_Prod
   displayName: "Deploy to PROD"
   dependsOn: Deploy_QA
   condition: succeeded()
   jobs:
-  - deployment: PROD   # <-- Add approval in Azure DevOps UI
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: terraform-plans
-
-          - task: AzureCLI@2
-            displayName: "Terraform Plan PROD"
-            inputs:
-              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                set -e
-                cd terraform-plans
-
-                terraform init -reconfigure \
-                  -backend-config="key=prod.tfstate"
-
-                terraform plan -var-file="prod.tfvars" -out=prod.tfplan
-
-          - task: AzureCLI@2
-            displayName: "Terraform Apply PROD"
-            inputs:
-              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                set -e
-                cd terraform-plans
-                terraform apply -auto-approve prod.tfplan
-
-
-# =========================================================
-# ROLLBACK STAGE (OPTIONAL / MANUAL)
-# =========================================================
-- stage: Rollback
-  displayName: "Rollback Deployment"
-  dependsOn: Deploy_Prod
-  condition: failed()
-  jobs:
-  - job: Rollback
+  - job: PROD
+    displayName: "Apply PROD"
     pool:
       vmImage: ubuntu-latest
+
     steps:
-    - script: |
-        echo "Rollback triggered."
-        echo "Re-apply previous known-good state or redeploy last successful build."
-        echo "Rollback strategy:"
-        echo "1. Checkout previous commit"
-        echo "2. terraform apply saved plan"
-      displayName: "Rollback Instructions"
+    - download: current
+      artifact: terraform-plans
+
+    - task: AzureCLI@2
+      displayName: "Terraform Init & Plan PROD"
+      inputs:
+        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -e
+          cd terraform-plans
+
+          terraform init -reconfigure \
+            -backend-config="key=prod.tfstate"
+
+          terraform plan -var-file="prod.tfvars" -out=prod.tfplan
+
+    - task: AzureCLI@2
+      displayName: "Terraform Apply PROD"
+      inputs:
+        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          set -e
+          cd terraform-plans
+          terraform apply -auto-approve prod.tfplan
