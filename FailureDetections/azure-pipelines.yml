@@ -42,13 +42,23 @@ stages:
 
           # Validate Terraform
 
-          # Package Terraform code as artifact (for rollback)
+          - script: |
+              CUSTOM_ID="TF-$(date +%Y%m%d%H%M%S)-$(Build.SourceVersion)"
+              echo "Generated Build ID: $CUSTOM_ID"
+              echo "##vso[task.setvariable variable=CUSTOM_BUILD_ID]$CUSTOM_ID"
+            displayName: "Generate Custom Build ID"
+
+          - script: |
+              echo "Build ID: $(CUSTOM_BUILD_ID)" > FailureDetections/build_id.txt
+            displayName: "Write Build ID to file"
+
           - task: PublishBuildArtifacts@1
             inputs:
               PathtoPublish: 'FailureDetections/'
-              ArtifactName: 'terraform-code'
+              ArtifactName: 'terraform-code-$(CUSTOM_BUILD_ID)'
               publishLocation: 'Container'
-            displayName: "Publish Terraform Artifact"
+            displayName: "Publish Terraform Artifact with ID"
+
 
   # ======================================================
   # Stage 2: Release (Deploy)
