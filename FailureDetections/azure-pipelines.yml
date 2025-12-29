@@ -12,7 +12,7 @@ variables:
 stages:
 
 # =========================================================
-# BUILD STAGE
+# BUILD STAGE (INIT + PLAN QA)
 # =========================================================
 - stage: Build
   displayName: "Build & Terraform Plan"
@@ -45,6 +45,12 @@ stages:
           set -e
           cd $(tfWorkingDir)
 
+          # ---- Service Principal auth for Terraform ----
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_TENANT_ID=$tenantId
+          export ARM_SUBSCRIPTION_ID=$subscriptionId
+
           terraform init \
             -backend-config="resource_group_name=tfstate-rg-monitoring" \
             -backend-config="storage_account_name=tfstatestoracct02" \
@@ -65,7 +71,7 @@ stages:
   dependsOn: Build
   jobs:
   - job: QA
-    displayName: "Apply QA"
+    displayName: "Terraform Apply QA"
     pool:
       vmImage: ubuntu-latest
 
@@ -74,7 +80,7 @@ stages:
       artifact: terraform-plans
 
     - task: AzureCLI@2
-      displayName: "Terraform Apply QA"
+      displayName: "Apply QA"
       inputs:
         azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
         scriptType: bash
@@ -83,7 +89,11 @@ stages:
           set -e
           cd terraform-plans
 
-          export ARM_USE_AZURECLI_AUTH=true
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_TENANT_ID=$tenantId
+          export ARM_SUBSCRIPTION_ID=$subscriptionId
+
           terraform apply -auto-approve qa.tfplan
 
 # =========================================================
@@ -95,7 +105,7 @@ stages:
   condition: succeeded()
   jobs:
   - job: PROD
-    displayName: "Apply PROD"
+    displayName: "Terraform Apply PROD"
     pool:
       vmImage: ubuntu-latest
 
@@ -113,13 +123,18 @@ stages:
           set -e
           cd terraform-plans
 
+          export ARM_CLIENT_ID=$servicePrincipalId
+          export ARM_CLIENT_SECRET=$servicePrincipalKey
+          export ARM_TENANT_ID=$tenantId
+          export ARM_SUBSCRIPTION_ID=$subscriptionId
+
           terraform init -reconfigure \
             -backend-config="key=prod.tfstate"
 
           terraform plan -var-file="prod.tfvars" -out=prod.tfplan
 
     - task: AzureCLI@2
-      displayName: "Terraform Apply PROD"
+      displayName: "Apply PROD"
       inputs:
         azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
         scriptType: bash
@@ -127,4 +142,5 @@ stages:
         inlineScript: |
           set -e
           cd terraform-plans
-          terraform apply -auto-approve prod.tfplan
+
+          export ARM
