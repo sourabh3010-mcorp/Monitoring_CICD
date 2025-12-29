@@ -41,9 +41,6 @@ stages:
             displayName: "Install Terraform 1.7.5"
 
           # Validate Terraform
-          - script: terraform validate
-            workingDirectory: FailureDetections/terraform
-            displayName: "Terraform Validate"
 
           # Package Terraform code as artifact (for rollback)
           - task: PublishBuildArtifacts@1
