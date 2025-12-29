@@ -3,150 +3,114 @@ trigger:
     include:
       - main
 
-name: Monitoring-$(Date:yyyyMMdd).$(Rev:r)
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+  - name: environment
+    displayName: "Environment"
+    type: string
+    default: "qa"
+    values:
+      - qa
+      - prod
 
 variables:
-  terraformVersion: '1.7.5'
-  tfWorkingDir: 'FailureDetections/terraform'
+  environment: ${{ parameters.environment }}
 
 stages:
+  # ======================================================
+  # Stage 1: Build
+  # ======================================================
+  - stage: Build
+    displayName: "Build Terraform Artifact"
+    jobs:
+      - job: BuildJob
+        steps:
+          - checkout: self
 
-# =========================================================
-# BUILD STAGE (INIT + PLAN QA)
-# =========================================================
-- stage: Build
-  displayName: "Build & Terraform Plan"
-  jobs:
-  - job: Build
-    displayName: "Terraform Build"
-    pool:
-      vmImage: ubuntu-latest
+          # Install Terraform (same as your current pipeline)
+          - script: |
+              sudo apt-get update -y
+              wget -qO- https://aka.ms/InstallAzureCLIDeb | sudo bash
+              sudo apt-get install -y wget unzip
+              wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+              unzip -o terraform_1.7.5_linux_amd64.zip
+              sudo mv -f terraform /usr/local/bin/
+              terraform -version
+            displayName: "Install Terraform 1.7.5"
 
-    steps:
-    - checkout: self
+          # Validate Terraform
+          - script: terraform validate
+            workingDirectory: FailureDetections/terraform
+            displayName: "Terraform Validate"
 
-    - task: Bash@3
-      displayName: "Install Terraform"
-      inputs:
-        targetType: inline
-        script: |
-          wget https://releases.hashicorp.com/terraform/$(terraformVersion)/terraform_$(terraformVersion)_linux_amd64.zip
-          unzip terraform_$(terraformVersion)_linux_amd64.zip
-          sudo mv terraform /usr/local/bin/
-          terraform -version
+          # Package Terraform code as artifact (for rollback)
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: 'FailureDetections/terraform'
+              ArtifactName: 'terraform-code'
+              publishLocation: 'Container'
+            displayName: "Publish Terraform Artifact"
 
-    - task: AzureCLI@2
-      displayName: "Terraform Init & Plan (QA)"
-      inputs:
-        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-        scriptType: bash
-        scriptLocation: inlineScript
-        addSpnToEnvironment: true   # 🔑 REQUIRED
-        inlineScript: |
-          set -e
-          cd $(tfWorkingDir)
+  # ======================================================
+  # Stage 2: Release (Deploy)
+  # ======================================================
+  - stage: Release
+    displayName: "Deploy Terraform"
+    dependsOn: Build
+    jobs:
+      - job: DeployJob
+        steps:
+          - checkout: self
 
-          # ---- FORCE SERVICE PRINCIPAL AUTH ----
-          export ARM_CLIENT_ID=$servicePrincipalId
-          export ARM_CLIENT_SECRET=$servicePrincipalKey
-          export ARM_TENANT_ID=$tenantId
-          export ARM_SUBSCRIPTION_ID=$subscriptionId
+          # Download artifact from Build stage
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'terraform-code'
+              downloadPath: '$(Pipeline.Workspace)'
 
-          # ---- DISABLE AZURE CLI AUTH (CRITICAL) ----
-          export ARM_USE_AZURECLI_AUTH=false
-          unset AZURE_CONFIG_DIR
+          # Terraform Init
+          - script: |
+              cd "$(Pipeline.Workspace)/terraform-code"
+              terraform init -upgrade \
+                -backend-config="resource_group_name=tfstate-rg-monitoring" \
+                -backend-config="storage_account_name=tfstatestoracct02" \
+                -backend-config="container_name=tfstate" \
+                -backend-config="key=$(environment).tfstate"
+            displayName: "Terraform Init"
+            env:
+              ARM_CLIENT_ID: $(TF_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+              ARM_TENANT_ID: $(TF_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
-          terraform init \
-            -backend-config="resource_group_name=tfstate-rg-monitoring" \
-            -backend-config="storage_account_name=tfstatestoracct02" \
-            -backend-config="container_name=tfstate" \
-            -backend-config="key=qa.tfstate"
+          # Terraform Plan
+          - task: AzureCLI@2
+            displayName: "Terraform Plan"
+            inputs:
+              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                cd "$(Pipeline.Workspace)/terraform-code"
+                ENV="${environment:-qa}"
+                terraform plan -var-file="${ENV}.tfvars" -out=tfplan -input=false
 
-          terraform validate
-          terraform plan -var-file="qa.tfvars" -out=qa.tfplan
-
-
-# =========================================================
-# DEPLOY TO QA
-# =========================================================
-- stage: Deploy_QA
-  displayName: "Deploy to QA"
-  dependsOn: Build
-  jobs:
-  - job: QA
-    displayName: "Terraform Apply QA"
-    pool:
-      vmImage: ubuntu-latest
-
-    steps:
-    - download: current
-      artifact: terraform-plans
-
-    - task: AzureCLI@2
-      displayName: "Terraform Apply QA"
-      inputs:
-        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-        scriptType: bash
-        scriptLocation: inlineScript
-        addSpnToEnvironment: true
-        inlineScript: |
-          set -e
-          cd terraform-plans
-
-          export ARM_CLIENT_ID=$servicePrincipalId
-          export ARM_CLIENT_SECRET=$servicePrincipalKey
-          export ARM_TENANT_ID=$tenantId
-          export ARM_SUBSCRIPTION_ID=$subscriptionId
-          export ARM_USE_AZURECLI_AUTH=false
-
-          terraform apply -auto-approve qa.tfplan
-
-
-# =========================================================
-# DEPLOY TO PROD
-# =========================================================
-- stage: Deploy_Prod
-  displayName: "Deploy to PROD"
-  dependsOn: Deploy_QA
-  condition: succeeded()
-  jobs:
-  - job: PROD
-    displayName: "Terraform Apply PROD"
-    pool:
-      vmImage: ubuntu-latest
-
-    steps:
-    - download: current
-      artifact: terraform-plans
-
-    - task: AzureCLI@2
-      displayName: "Terraform Init & Plan PROD"
-      inputs:
-        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
-          set -e
-          cd terraform-plans
-
-          export ARM_CLIENT_ID=$servicePrincipalId
-          export ARM_CLIENT_SECRET=$servicePrincipalKey
-          export ARM_TENANT_ID=$tenantId
-          export ARM_SUBSCRIPTION_ID=$subscriptionId
-
-          terraform init -reconfigure \
-            -backend-config="key=prod.tfstate"
-
-          terraform plan -var-file="prod.tfvars" -out=prod.tfplan
-
-    - task: AzureCLI@2
-      displayName: "Apply PROD"
-      inputs:
-        azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-        scriptType: bash
-        scriptLocation: inlineScript
-        inlineScript: |
-          set -e
-          cd terraform-plans
-
-          export ARM
+          # Terraform Apply
+          - task: AzureCLI@2
+            displayName: "Terraform Apply"
+            inputs:
+              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                cd "$(Pipeline.Workspace)/terraform-code"
+                if [ -f tfplan ]; then
+                  terraform apply -input=false -auto-approve tfplan
+                else
+                  echo "ERROR: tfplan not found, aborting."
+                  exit 1
+                fi
