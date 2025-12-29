@@ -83,12 +83,14 @@ stages:
 
           # Terraform Init
           - script: |
-              cd "$(Pipeline.Workspace)/terraform-code"
+              echo "Initializing Terraform backend for environment: $(environment)"
               terraform init -upgrade \
                 -backend-config="resource_group_name=tfstate-rg-monitoring" \
                 -backend-config="storage_account_name=tfstatestoracct02" \
                 -backend-config="container_name=tfstate" \
-                -backend-config="key=$(environment).tfstate"
+                -backend-config="key=$(environment).tfstate" \
+                -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
+            workingDirectory: FailureDetections/terraform
             displayName: "Terraform Init"
             env:
               ARM_CLIENT_ID: $(TF_CLIENT_ID)
@@ -96,6 +98,46 @@ stages:
               ARM_TENANT_ID: $(TF_TENANT_ID)
               ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
+          # ======================================================
+          # Terraform Validate
+          # ======================================================
+          - script: terraform validate
+            workingDirectory: FailureDetections/terraform
+            displayName: "Terraform Validate"
+            env:
+              ARM_CLIENT_ID: $(TF_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+              ARM_TENANT_ID: $(TF_TENANT_ID)
+              ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+         
+          - script: |
+              set -euo pipefail
+              echo "Agent sources directory: $(Build.SourcesDirectory)"
+              echo "Listing repo root:"
+              ls -la "$(Build.SourcesDirectory)" || true
+
+              echo
+              echo "Looking for FailureDetections directory (case-sensitive):"
+              if [ -d "$(Build.SourcesDirectory)/FailureDetections" ]; then
+                echo "Found FailureDetections:"
+                ls -la "$(Build.SourcesDirectory)/FailureDetections" || true
+              else
+                echo "FailureDetections directory NOT found at: $(Build.SourcesDirectory)/FailureDetections"
+              fi
+
+              echo
+              echo "Searching for Terraform files in the repo (shows paths of committed .tf files and .tfvars):"
+              cd "$(Build.SourcesDirectory)"
+              git ls-files
+              git ls-files | grep '\.tf$' || echo "No .tf files found in repo (git ls-files returned nothing)."
+              git ls-files | grep '\.tfvars$' || echo "No .tfvars files found in repo (git ls-files returned nothing)."
+
+              echo
+              echo "If the terraform files are located at a different path, update your workingDirectory or `cd` to the correct folder."
+            displayName: "Debug: list repo and find Terraform files"
+          # ======================================================
+          # Debug listing (optional, keeps as you had)
+          # ======================================================
           # Terraform Plan
           - task: AzureCLI@2
             displayName: "Terraform Plan"
