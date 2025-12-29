@@ -65,7 +65,6 @@ stages:
   dependsOn: Build
   jobs:
   - deployment: QA
-    environment: qa
     strategy:
       runOnce:
         deploy:
@@ -95,8 +94,7 @@ stages:
   dependsOn: Deploy_QA
   condition: succeeded()
   jobs:
-  - deployment: PROD
-    environment: prod   # <-- Add approval in Azure DevOps UI
+  - deployment: PROD   # <-- Add approval in Azure DevOps UI
     strategy:
       runOnce:
         deploy:
