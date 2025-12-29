@@ -55,7 +55,7 @@ stages:
           - task: PublishBuildArtifacts@1
             inputs:
               PathtoPublish: 'FailureDetections/'
-              ArtifactName: 'terraform-code-$(CUSTOM_BUILD_ID)'
+              ArtifactName: 'umd-code-$(CUSTOM_BUILD_ID)'
               publishLocation: 'Container'
             displayName: "Publish Terraform Artifact with ID"
 
@@ -76,8 +76,10 @@ stages:
             inputs:
               buildType: 'current'
               downloadType: 'single'
-              artifactName: 'terraform-code'
+              artifactName: 'umd-code-$(CUSTOM_BUILD_ID)'
               downloadPath: '$(Pipeline.Workspace)'
+            displayName: "Download Terraform Artifact"
+
 
           # Terraform Init
           - script: |
