@@ -45,7 +45,7 @@ stages:
           # Package Terraform code as artifact (for rollback)
           - task: PublishBuildArtifacts@1
             inputs:
-              PathtoPublish: 'FailureDetections/terraform'
+              PathtoPublish: 'FailureDetections/'
               ArtifactName: 'terraform-code'
               publishLocation: 'Container'
             displayName: "Publish Terraform Artifact"
