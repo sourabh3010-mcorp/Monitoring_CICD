@@ -110,15 +110,15 @@ stages:
           # Terraform Validate
           # ======================================================
       - script: terraform validate
-            workingDirectory: FailureDetections/terraform
-            displayName: "Terraform Validate"
-            env:
+        workingDirectory: FailureDetections/terraform
+        displayName: "Terraform Validate"
+        env:
               ARM_CLIENT_ID: $(TF_CLIENT_ID)
               ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
               ARM_TENANT_ID: $(TF_TENANT_ID)
               ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
          
-          - script: |
+      - script: |
               set -euo pipefail
               echo "Agent sources directory: $(Build.SourcesDirectory)"
               echo "Listing repo root:"
