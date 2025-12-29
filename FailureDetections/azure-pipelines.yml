@@ -87,7 +87,7 @@ stages:
               unzip -o terraform_1.7.5_linux_amd64.zip
               sudo mv -f terraform /usr/local/bin/
               terraform -version
-            displayName: "Install Terraform 1.7.5"
+        displayName: "Install Terraform 1.7.5"
 
           # Terraform Init
       - script: |
