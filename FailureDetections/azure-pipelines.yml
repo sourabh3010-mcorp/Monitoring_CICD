@@ -72,13 +72,13 @@ stages:
           - checkout: self
 
           # Download artifact from Build stage
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: 'umd-code-$(CUSTOM_BUILD_ID)'
-              downloadPath: '$(Pipeline.Workspace)'
-            displayName: "Download Terraform Artifact"
+          # - task: DownloadBuildArtifacts@0
+          #   inputs:
+          #     buildType: 'current'
+          #     downloadType: 'single'
+          #     artifactName: 'umd-code-$(CUSTOM_BUILD_ID)'
+          #     downloadPath: '$(Pipeline.Workspace)'
+          #   displayName: "Download Terraform Artifact"
 
 
           # Terraform Init
