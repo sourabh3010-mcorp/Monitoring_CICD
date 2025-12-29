@@ -142,7 +142,7 @@ stages:
 
               echo
               echo "If the terraform files are located at a different path, update your workingDirectory or `cd` to the correct folder."
-            displayName: "Debug: list repo and find Terraform files"
+        displayName: "Debug: list repo and find Terraform files"
 
 
           # ======================================================
