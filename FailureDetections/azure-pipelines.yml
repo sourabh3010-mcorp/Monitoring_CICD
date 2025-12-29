@@ -43,7 +43,7 @@ stages:
           # Validate Terraform
 
           - script: |
-              CUSTOM_ID="TF-$(date)-$(Build.SourceVersion)"
+              CUSTOM_ID="TF-$(date +%Y%m%d%H%M%S)"
               echo "Generated Build ID: $CUSTOM_ID"
               echo "##vso[task.setvariable variable=CUSTOM_BUILD_ID]$CUSTOM_ID"
             displayName: "Generate Custom Build ID"
