@@ -79,7 +79,7 @@ stages:
           #     artifactName: 'umd-code-$(CUSTOM_BUILD_ID)'
           #     downloadPath: '$(Pipeline.Workspace)'
           #   displayName: "Download Terraform Artifact"
-          - script: |
+      - script: |
               sudo apt-get update -y
               wget -qO- https://aka.ms/InstallAzureCLIDeb | sudo bash
               sudo apt-get install -y wget unzip
@@ -90,7 +90,7 @@ stages:
             displayName: "Install Terraform 1.7.5"
 
           # Terraform Init
-          - script: |
+      - script: |
               echo "Initializing Terraform backend for environment: $(environment)"
               terraform init -upgrade \
                 -backend-config="resource_group_name=tfstate-rg-monitoring" \
@@ -98,18 +98,18 @@ stages:
                 -backend-config="container_name=tfstate" \
                 -backend-config="key=$(environment).tfstate" \
                 -backend-config="access_key=WfJKRgecjuhKEpFCrU3xkF8Dd1kFgKGFR6ygi5ApP8O+XsAgqsFX4KVp1AXQSAohg9DDXOw7zZmz+ASt+YzJTw=="
-            workingDirectory: FailureDetections/terraform
-            displayName: "Terraform Init"
-            env:
-              ARM_CLIENT_ID: $(TF_CLIENT_ID)
-              ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
-              ARM_TENANT_ID: $(TF_TENANT_ID)
-              ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
+              workingDirectory: FailureDetections/terraform
+              displayName: "Terraform Init"
+              env:
+                ARM_CLIENT_ID: $(TF_CLIENT_ID)
+                ARM_CLIENT_SECRET: $(TF_CLIENT_SECRET)
+                ARM_TENANT_ID: $(TF_TENANT_ID)
+                ARM_SUBSCRIPTION_ID: $(TF_SUBSCRIPTION_ID)
 
           # ======================================================
           # Terraform Validate
           # ======================================================
-          - script: terraform validate
+      - script: terraform validate
             workingDirectory: FailureDetections/terraform
             displayName: "Terraform Validate"
             env:
@@ -150,13 +150,13 @@ stages:
       # This avoids tenant placeholder issues and uses the service connection for auth.
       # Uses <env>.tfvars located in FailureDetections/terraform (qa.tfvars or prod.tfvars)
       # ======================================================
-          - task: AzureCLI@2
-            displayName: "Terraform Plan (authenticate with service connection & plan)"
-            inputs:
-              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'   # <-- REPLACE with your Azure service connection name
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
+      - task: AzureCLI@2
+        displayName: "Terraform Plan (authenticate with service connection & plan)"
+        inputs:
+          azureSubscription: 'VS Professional Subscription-Nitin Pradhan'   # <-- REPLACE with your Azure service connection name
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
                   set -euo pipefail
 
                   TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
@@ -215,22 +215,22 @@ stages:
                   terraform plan -var-file="$TFVARS_FILE" -out=tfplan -input=false
 
                   echo "Terraform plan completed. Plan saved to: $(pwd)/tfplan"
-              env:
+          env:
                     # make runtime environment variable available inside the task script
-                 environment: $(environment)
+             environment: $(environment)
 
             # ======================================================
             # (Optional) You can add Apply step here — recommended to use AzureCLI@2 as well and apply the saved tfplan.
             # ======================================================
 
 
-          - task: AzureCLI@2
-            displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
-            inputs:
-              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
+      - task: AzureCLI@2
+        displayName: "Terraform Apply (apply saved tfplan using Azure service connection)"
+        inputs:
+          azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
                 set -euo pipefail
 
                 TF_WORKDIR="$(Build.SourcesDirectory)/FailureDetections/terraform"
@@ -276,5 +276,5 @@ stages:
                   echo "If you intentionally want to apply directly, change this step to run:"
                   echo "  terraform apply -var-file=\"${ENV}.tfvars\" -input=false -auto-approve"
                   exit 1
-              env:
-                environment: $(environment)
+        env:
+            environment: $(environment)
