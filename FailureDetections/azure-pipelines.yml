@@ -41,15 +41,20 @@ stages:
         azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
         scriptType: bash
         scriptLocation: inlineScript
+        addSpnToEnvironment: true   # 🔑 REQUIRED
         inlineScript: |
           set -e
           cd $(tfWorkingDir)
 
-          # ---- Service Principal auth for Terraform ----
+          # ---- FORCE SERVICE PRINCIPAL AUTH ----
           export ARM_CLIENT_ID=$servicePrincipalId
           export ARM_CLIENT_SECRET=$servicePrincipalKey
           export ARM_TENANT_ID=$tenantId
           export ARM_SUBSCRIPTION_ID=$subscriptionId
+
+          # ---- DISABLE AZURE CLI AUTH (CRITICAL) ----
+          export ARM_USE_AZURECLI_AUTH=false
+          unset AZURE_CONFIG_DIR
 
           terraform init \
             -backend-config="resource_group_name=tfstate-rg-monitoring" \
@@ -60,8 +65,6 @@ stages:
           terraform validate
           terraform plan -var-file="qa.tfvars" -out=qa.tfplan
 
-    - publish: $(tfWorkingDir)
-      artifact: terraform-plans
 
 # =========================================================
 # DEPLOY TO QA
@@ -80,11 +83,12 @@ stages:
       artifact: terraform-plans
 
     - task: AzureCLI@2
-      displayName: "Apply QA"
+      displayName: "Terraform Apply QA"
       inputs:
         azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
         scriptType: bash
         scriptLocation: inlineScript
+        addSpnToEnvironment: true
         inlineScript: |
           set -e
           cd terraform-plans
@@ -93,8 +97,10 @@ stages:
           export ARM_CLIENT_SECRET=$servicePrincipalKey
           export ARM_TENANT_ID=$tenantId
           export ARM_SUBSCRIPTION_ID=$subscriptionId
+          export ARM_USE_AZURECLI_AUTH=false
 
           terraform apply -auto-approve qa.tfplan
+
 
 # =========================================================
 # DEPLOY TO PROD
