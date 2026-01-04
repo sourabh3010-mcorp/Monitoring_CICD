@@ -15,6 +15,17 @@ parameters:
       - qa
       - prod
 
+  - name: rollback
+    displayName: "Perform Rollback?"
+    type: boolean
+    default: false
+
+  - name: rollbackBuildId
+    displayName: "Rollback Build ID (e.g. TF-20250104123000)"
+    type: string
+    default: ""
+
+
 variables:
   environment: ${{ parameters.environment }}
 
@@ -305,3 +316,85 @@ stages:
                       exit 1
             env:
               environment: $(environment)
+
+  # ======================================================
+# Stage: Rollback
+# ======================================================
+  - stage: Rollback
+    displayName: "Rollback Deployment"
+    dependsOn: []
+    condition: and(succeeded(), eq('${{ parameters.rollback }}', true))
+    jobs:
+      - job: RollbackJob
+        displayName: "Rollback using previous artifact"
+        steps:
+          - checkout: none
+
+          # ---------------------------------------------
+          # Download artifact from a PREVIOUS build
+          # ---------------------------------------------
+          - task: DownloadBuildArtifacts@0
+            displayName: "Download rollback artifact"
+            inputs:
+              buildType: 'specific'
+              project: '$(System.TeamProject)'
+              pipeline: '$(System.DefinitionId)'
+              buildVersionToDownload: 'specific'
+              buildId: '${{ parameters.rollbackBuildId }}'
+              downloadType: 'single'
+              artifactName: 'umd-code-${{ parameters.rollbackBuildId }}'
+              downloadPath: '$(Pipeline.Workspace)/rollback'
+
+          # ---------------------------------------------
+          # Install Terraform
+          # ---------------------------------------------
+          - script: |
+              sudo apt-get update -y
+              sudo apt-get install -y wget unzip
+              wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+              unzip -o terraform_1.7.5_linux_amd64.zip
+              sudo mv terraform /usr/local/bin/
+              terraform -version
+            displayName: "Install Terraform"
+
+          # ---------------------------------------------
+          # Terraform Init
+          # ---------------------------------------------
+          - script: |
+              cd "$(Pipeline.Workspace)/rollback/FailureDetections/terraform"
+
+              terraform init -upgrade \
+                -backend-config="resource_group_name=tfstate-rg-monitoring" \
+                -backend-config="storage_account_name=tfstatestoracct02" \
+                -backend-config="container_name=tfstate" \
+                -backend-config="key=$(environment).tfstate"
+            displayName: "Terraform Init (Rollback)"
+
+          # ---------------------------------------------
+          # Terraform Apply (Rollback)
+          # ---------------------------------------------
+          - task: AzureCLI@2
+            displayName: "Terraform Apply Rollback"
+            inputs:
+              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+
+                TF_DIR="$(Pipeline.Workspace)/rollback/FailureDetections/terraform"
+                cd "$TF_DIR"
+
+                ENV="${{ parameters.environment }}"
+                echo "Rolling back environment: $ENV"
+                echo "Using artifact build: ${{ parameters.rollbackBuildId }}"
+
+                export ARM_USE_AZURECLI_AUTH=true
+                export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+                export ARM_TENANT_ID=$(az account show --query tenantId -o tsv)
+
+                terraform apply \
+                  -var-file="${ENV}.tfvars" \
+                  -auto-approve \
+                  -input=false
+
