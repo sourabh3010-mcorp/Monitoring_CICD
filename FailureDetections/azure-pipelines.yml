@@ -60,11 +60,39 @@ stages:
             displayName: "Publish Terraform Artifact with ID"
 
 
+  - stage: DeployDCR
+    displayName: "Deploy Data Collection Rules (CLI)"
+    dependsOn: Release
+    jobs:
+      - job: DeployDCRJob
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: "Deploy DCR using az deployment"
+            inputs:
+              azureSubscription: 'VS Professional Subscription-Nitin Pradhan'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+
+                RG="monitoring-rg-$(environment)"
+                TEMPLATE="FailureDetections/arm/dataCollectionRules.json"
+                PARAMS="FailureDetections/arm/$(environment).parameters.json"
+
+                echo "Deploying DCR to resource group: $RG"
+                az deployment group create \
+                  --resource-group "$RG" \
+                  --template-file "$TEMPLATE" \
+                  --parameters @"$PARAMS"
+
+
   # ======================================================
   # Stage 2: Release (Deploy)
   # ======================================================
   - stage: Release
-    displayName: "Deploy Terraform"
+    displayName: "Deploy code through terraform"
     dependsOn: Build
     jobs:
       - job: DeployJob
